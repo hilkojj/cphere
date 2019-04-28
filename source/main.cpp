@@ -1,18 +1,15 @@
 
 #include <iostream>
-#include "graphics/3d/perspective_camera.h"
-#include "utils/math_utils.h"
-#include "utils/json_model_loader.h"
+#include "gu/game_utils.h"
 
 int main()
 {
-    PerspectiveCamera cam(1, 100, 1600, 900, 75);
+    gu::Config config = {};
 
-    cam.rotate(10, mu::X);
-	std::cout << cam.fOV << "hello\n";
+    if (!gu::init(config))
+        return -1;
 
-    SharedModel m = JsonModelLoader::fromJsonFile("bla", NULL)[0];
-
-	return 0;
+    gu::run();
+    
+    return 0;
 }
-
