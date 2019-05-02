@@ -1,6 +1,9 @@
 
 #include <iostream>
 #include "gu/game_utils.h"
+#include "level_screen.cpp"
+
+#include "glm/glm.hpp"
 
 int main()
 {
@@ -8,6 +11,9 @@ int main()
 
     if (!gu::init(config))
         return -1;
+
+    LevelScreen s;
+    gu::setScreen(&s);
 
     gu::run();
     
