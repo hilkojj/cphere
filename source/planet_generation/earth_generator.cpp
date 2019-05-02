@@ -7,6 +7,7 @@ namespace
 
 void generateIslandTerrain(Island *isl)
 {
+    isl->seaBottom = -10;
     for (auto &p : isl->vertexPositionsOriginal) p.y = -10;
     isl->vertexPositionsOriginal[isl->width * 3 + 10].y = 30;
     isl->vertexPositionsOriginal[isl->width * 3 + 11].y = 30;

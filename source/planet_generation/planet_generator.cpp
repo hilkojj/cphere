@@ -175,7 +175,6 @@ void PlanetGenerator::uploadIslandMeshes()
     {
         SharedMesh &mesh = isl->model->parts[0].mesh;
         if (!buffer) buffer = VertBuffer::with(mesh->attributes);
-        std::cout << mesh->attributes << std::endl;
         buffer->add(mesh);
     }
     buffer->upload(false);

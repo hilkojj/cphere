@@ -155,7 +155,7 @@ void IslandGenerator::createModel()
     {
         for (int y = 0; y < isl->height; y++)
         {
-            // if (isl->tileAtSeaFloor(x, y)) continue;
+            if (isl->tileAtSeaFloor(x, y)) continue;
 
             int vertI = x + y * (isl->width + 1);
 

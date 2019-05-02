@@ -25,9 +25,7 @@ glm::vec3 Planet::lonLatTo3d(float lon, float lat, float altitude)
     return glm::rotate(out, -lon * mu::RAD_TO_DEGREES, mu::Y);
 }
 
-Planet::~Planet()
+void Planet::destroyIslands()
 {
-    for (Island *isl : islands)
-        delete isl;
-    std::cout << "Planet " << name << " and al it's islands destroyed.\n";
+    for (Island *isl : islands) delete isl;
 }

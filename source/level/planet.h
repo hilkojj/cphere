@@ -28,8 +28,8 @@ class Planet
 
     glm::vec3 lonLatTo3d(float lon, float lat, float altitude);
 
-    // destroys islands as well.
-    ~Planet();
+    // must be called to delete islands.
+    void destroyIslands();
 
 };
 

@@ -25,8 +25,6 @@ class LevelScreen : public Screen
           cam(PerspectiveCamera(.1, 1000, 1, 1, 75)), camController(&cam),
           shaderProgram(ShaderProgram::fromFiles("NormalTestShader", "gu/assets/shaders/test.vert", "gu/assets/shaders/normaltest.frag"))
     {
-        generateEarth(&earth);
-        
         cam.position = glm::vec3(0, 0, 3);
         cam.lookAt(glm::vec3(0));
         cam.update();
@@ -36,6 +34,7 @@ class LevelScreen : public Screen
     {
         if (KeyInput::justPressed(GLFW_KEY_R))
         {
+            earth.destroyIslands();
             earth = Planet("earth", Sphere(150));
             generateEarth(&earth);
         }
@@ -53,7 +52,6 @@ class LevelScreen : public Screen
 
         for (auto isl : earth.islands)
         {
-
             glm::mat4 mvp = cam.combined * isl->modelInstance->transform;
 
             glUniformMatrix4fv(mvpId, 1, GL_FALSE, &mvp[0][0]);
