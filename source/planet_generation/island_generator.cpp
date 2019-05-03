@@ -68,14 +68,16 @@ void IslandGenerator::planetDeform()
     // STEP 2: create outlines in 3d.
     for (Polygon &outline : isl->outlines2d)
     {
-        std::vector<glm::vec3> outline3d(outline.points.size());
-        isl->outlines3d.push_back(outline3d);
+        isl->outlines3d.push_back(std::vector<glm::vec3>());
+        auto &outline3d = isl->outlines3d.back();
+        outline3d.reserve(outline.points.size());
         int i = 0;
         for (glm::vec2 &p2D : outline.points)
         {
-            glm::vec3 &p3D = outline3d[i++] = glm::normalize(glm::vec3(p2D.x, 0, p2D.y) - planetOrigin);
+            glm::vec3 p3D = glm::normalize(glm::vec3(p2D.x, 0, p2D.y) - planetOrigin);
             p3D *= radius;
             p3D += planetOrigin;
+            outline3d.push_back(p3D);
         }
     }
 }
@@ -151,23 +153,21 @@ void IslandGenerator::createModel()
     }
 
     int i = 0;
-    for (int x = 0; x < isl->width; x++)
+    for (int y = 0; y < isl->height; y++)
     {
-        for (int y = 0; y < isl->height; y++)
+        for (int x = 0; x < isl->width; x++)
         {
             if (isl->tileAtSeaFloor(x, y)) continue;
 
-            int vertI = x + y * (isl->width + 1);
-
             // triangle 1
-            mesh->indices[i + 0] = vertI;
-            mesh->indices[i + 1] = vertI + isl->width + 1;
-            mesh->indices[i + 2] = vertI + 1;
+            mesh->indices[i + 0] = isl->xyToVertI(x, y);
+            mesh->indices[i + 1] = isl->xyToVertI(x + 1, y);
+            mesh->indices[i + 2] = isl->xyToVertI(x + 1, y + 1);
 
             // triangle 2
-            mesh->indices[i + 3] = vertI + 1;
-            mesh->indices[i + 4] = vertI + isl->width + 1;
-            mesh->indices[i + 5] = vertI + isl->width + 2;
+            mesh->indices[i + 3] = isl->xyToVertI(x, y);
+            mesh->indices[i + 4] = isl->xyToVertI(x, y + 1);
+            mesh->indices[i + 5] = isl->xyToVertI(x + 1, y + 1);
 
             i += 6;
         }
