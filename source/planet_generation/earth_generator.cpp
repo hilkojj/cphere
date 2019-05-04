@@ -2,19 +2,22 @@
 #include "earth_generator.h"
 #include "island_shape_generator.h"
 #include "utils/math_utils.h"
+#include "FastNoise.h"
+#include "utils/math/interpolation.h"
 
 namespace
 {
 
-static float SEA_BOTTOM = -5, SEA_LEVEL = 0, LAND_LEVEL = .7f;
+static float SEA_BOTTOM = -5, SEA_LEVEL = 0, LAND_LEVEL = 1.0f;
 
 void terrainFromShape(std::vector<bool> shape, Island *isl)
 {
+    FastNoise noise;
     for (int x = 0; x <= isl->width; x++)
     {
         for (int y = 0; y <= isl->height; y++)
         {
-            int beachWidth = 10;// + (int)(14 * glm::abs(SimplexNoise.noise(x * .02f, y * .02f)));
+            int beachWidth = 10 + (int)(20 * glm::abs(noise.GetNoise(x * 3, y * 3)));
             float distToSea = beachWidth;
 
             for (int x0 = glm::max(0, x - beachWidth); x0 <= glm::min(isl->width, x + beachWidth); x0++)
@@ -30,7 +33,7 @@ void terrainFromShape(std::vector<bool> shape, Island *isl)
                     }
                 }
             }
-            float height = distToSea / beachWidth; //Interpolation.circleOut.apply(distToSea / beachWidth);
+            float height = Interpolation::powOut(distToSea / beachWidth, 5);
             height = SEA_BOTTOM + height * glm::abs(SEA_BOTTOM - LAND_LEVEL);
             isl->vertexPositionsOriginal[isl->xyToVertI(x, y)].y = height;
         }
@@ -58,7 +61,7 @@ void generateEarth(Planet *earth)
         [&]() {
             return IslandContext{
                 IslandGenerator(
-                    mu::randomInt(95, 130), mu::randomInt(95, 130),
+                    mu::randomInt(100, 150), mu::randomInt(100, 150),
                     earth,
                     generateIslandTerrain,
                     islandTextureMapper),
