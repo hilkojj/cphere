@@ -54,7 +54,7 @@ class PlanetGenerator
 
     bool overlaps(Island* isl0, Island* isl1);
 
-    void uploadIslandMeshes();
+    void uploadMeshes();
 
 };
 

@@ -4,6 +4,8 @@
 #include "utils/math_utils.h"
 #include "FastNoise.h"
 #include "utils/math/interpolation.h"
+#include "utils/json_model_loader.h"
+#include "graphics/3d/tangent_calculator.h"
 
 namespace
 {
@@ -50,6 +52,34 @@ void islandTextureMapper(Island *isl)
 {
 }
 
+SharedMesh earthMeshGenerator(Planet *earth)
+{
+    VertAttributes attrs;
+    attrs.add(VertAttributes::POSITION);
+    attrs.add(VertAttributes::NORMAL);
+    attrs.add(VertAttributes::TANGENT);
+    int texOffset = attrs.add(VertAttributes::TEX_COORDS);
+    auto loaded = JsonModelLoader::fromUbjsonFile("assets/models/earth_sphere.ubj", &attrs);
+    assert(loaded.size() == 1 && "Expected 1 loaded earth model");
+    assert(loaded[0]->parts.size() == 1 && "Expected 1 earth model part");
+    SharedMesh mesh = loaded[0]->parts[0].mesh;
+    float radius = earth->sphere.radius;
+    for (int i = 0; i < mesh->nrOfVertices * attrs.getVertSize(); i += attrs.getVertSize())
+    {
+        auto &x = mesh->vertices[i],
+             &y = mesh->vertices[i + 1],
+             &z = mesh->vertices[i + 2];
+        x *= radius;
+        y *= radius;
+        z *= radius;
+
+        mesh->vertices[i + texOffset] = earth->longitude(x, z) / 360;
+        mesh->vertices[i + texOffset + 1] = earth->latitude(y) / 180;
+    }
+    TangentCalculator::addTangentsToMesh(mesh.get());
+    return mesh;
+}
+
 } // namespace
 
 void generateEarth(Planet *earth)
@@ -73,7 +103,7 @@ void generateEarth(Planet *earth)
 
         // Earth mesh generator:
         [&]() {
-            return SharedMesh(new Mesh(earth->name + "_mesh", 0, 0, VertAttributes()));
+            return earthMeshGenerator(earth);
         });
 
     g.generate();

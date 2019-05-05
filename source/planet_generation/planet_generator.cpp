@@ -28,7 +28,7 @@ void PlanetGenerator::generate()
         }
     }
     plt->mesh = meshGenerator();
-    uploadIslandMeshes();
+    uploadMeshes();
 
     std::cout << "Generation of " << plt->name << " done. Placed " << plt->islands.size() << "/" << nrOfIslands << " islands.\n";
 }
@@ -168,7 +168,7 @@ bool PlanetGenerator::overlaps(Island *isl0, Island *isl1)
     return false;
 }
 
-void PlanetGenerator::uploadIslandMeshes()
+void PlanetGenerator::uploadMeshes()
 {
     VertBuffer *buffer = NULL;
     for (auto isl : plt->islands)
@@ -178,4 +178,7 @@ void PlanetGenerator::uploadIslandMeshes()
         buffer->add(mesh);
     }
     buffer->upload(false);
+
+    buffer = VertBuffer::with(plt->mesh->attributes);
+    buffer->add(plt->mesh)->upload(false);
 }

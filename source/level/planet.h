@@ -22,7 +22,7 @@ class Planet
 
     Planet(std::string name, Sphere sphere);
 
-    float longitude(float x, float y);
+    float longitude(float x, float z);
 
     float latitude(float y);
 
