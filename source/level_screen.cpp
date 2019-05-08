@@ -1,7 +1,7 @@
 
 #include "gu/screen.h"
 #include "glad/glad.h"
-
+#include "graphics/texture.h"
 #include "level/planet.h"
 #include "input/key_input.h"
 #include "planet_generation/earth_generator.h"
@@ -17,19 +17,26 @@ class LevelScreen : public Screen
   public:
     Planet earth;
     PerspectiveCamera cam;
-    ShaderProgram shaderProgram;
+    ShaderProgram shaderProgram, earthShader;
     FlyingCameraController camController;
     DebugLineRenderer lineRenderer;
+    SharedTexture waterNormalMap;
 
     LevelScreen()
         : earth("earth", Sphere(150)),
           cam(PerspectiveCamera(.1, 1000, 1, 1, 75)), camController(&cam),
-          shaderProgram(ShaderProgram::fromFiles("NormalTestShader", "gu/assets/shaders/test.vert", "gu/assets/shaders/normaltest.frag"))
+          shaderProgram(ShaderProgram::fromFiles("NormalTestShader", "gu/assets/shaders/test.vert", "gu/assets/shaders/normaltest.frag")),
+          waterNormalMap(Texture::fromDDSFile("assets/textures/sea_normals.dds")),
+          earthShader(ShaderProgram::fromFiles("EarthShader", "assets/shaders/earth.vert", "assets/shaders/earth.frag"))
     {
         generateEarth(&earth);
-        cam.position = glm::vec3(160, 0, 0);
+        cam.position = glm::vec3(200, 0, 0);
         cam.lookAt(glm::vec3(0));
         cam.update();
+        camController.speedMultiplier = 10;
+
+        std::cout << waterNormalMap->height << "\n";
+
     }
 
     void render(double deltaTime)
@@ -49,7 +56,7 @@ class LevelScreen : public Screen
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LESS);
 
-        glUseProgram(shaderProgram.getProgramId());
+        shaderProgram.use();
         GLuint mvpId = glGetUniformLocation(shaderProgram.getProgramId(), "MVP");
 
         for (auto isl : earth.islands)
@@ -62,8 +69,11 @@ class LevelScreen : public Screen
             mesh->render();
         }
 
+        earthShader.use();
+        waterNormalMap->bind(0);
         glm::mat4 mvp = cam.combined;
         glUniformMatrix4fv(mvpId, 1, GL_FALSE, &mvp[0][0]);
+        glUniform1i(glGetUniformLocation(earthShader.getProgramId(), "waterNormals"), 0);
         earth.mesh->render();
 
         lineRenderer.projection = cam.combined;
