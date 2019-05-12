@@ -6,6 +6,7 @@
 #include "utils/math/interpolation.h"
 #include "utils/json_model_loader.h"
 #include "graphics/3d/tangent_calculator.h"
+#include "utils/math/sphere_mesh_generator.h"
 
 namespace
 {
@@ -58,26 +59,8 @@ SharedMesh earthMeshGenerator(Planet *earth)
     attrs.add(VertAttributes::POSITION);
     attrs.add(VertAttributes::NORMAL);
     attrs.add(VertAttributes::TANGENT);
-    int texOffset = attrs.add(VertAttributes::TEX_COORDS);
-    auto loaded = JsonModelLoader::fromUbjsonFile("assets/models/earth_sphere.ubj", &attrs);
-    assert(loaded.size() == 1 && "Expected 1 loaded earth model");
-    assert(loaded[0]->parts.size() == 1 && "Expected 1 earth model part");
-    SharedMesh mesh = loaded[0]->parts[0].mesh;
-    float radius = earth->sphere.radius;
-    for (int i = 0; i < mesh->nrOfVertices * attrs.getVertSize(); i += attrs.getVertSize())
-    {
-        auto &x = mesh->vertices[i],
-             &y = mesh->vertices[i + 1],
-             &z = mesh->vertices[i + 2];
-        x *= radius;
-        y *= radius;
-        z *= radius;
-
-        mesh->vertices[i + texOffset] = earth->longitude(x, z) / 360;
-        mesh->vertices[i + texOffset + 1] = earth->latitude(y) / 180;
-    }
-    TangentCalculator::addTangentsToMesh(mesh.get());
-    return mesh;
+    attrs.add(VertAttributes::TEX_COORDS);
+    return SphereMeshGenerator::generate(earth->name + "_mesh", earth->sphere.radius, 75, 55, attrs);
 }
 
 } // namespace

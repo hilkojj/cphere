@@ -160,9 +160,9 @@ void IslandGenerator::createModel()
             if (isl->tileAtSeaFloor(x, y)) continue;
 
             // triangle 1
-            mesh->indices[i + 0] = isl->xyToVertI(x, y);
+            mesh->indices[i + 0] = isl->xyToVertI(x + 1, y + 1);
             mesh->indices[i + 1] = isl->xyToVertI(x + 1, y);
-            mesh->indices[i + 2] = isl->xyToVertI(x + 1, y + 1);
+            mesh->indices[i + 2] = isl->xyToVertI(x, y);
 
             // triangle 2
             mesh->indices[i + 3] = isl->xyToVertI(x, y);

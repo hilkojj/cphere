@@ -20,13 +20,17 @@ class LevelScreen : public Screen
     ShaderProgram shaderProgram, earthShader;
     FlyingCameraController camController;
     DebugLineRenderer lineRenderer;
-    SharedTexture waterNormalMap;
+    SharedTexture seaNormalMap;
+    SharedTexture seaDUDV;
+
+    float time = 0;
 
     LevelScreen()
         : earth("earth", Sphere(150)),
           cam(PerspectiveCamera(.1, 1000, 1, 1, 75)), camController(&cam),
           shaderProgram(ShaderProgram::fromFiles("NormalTestShader", "gu/assets/shaders/test.vert", "gu/assets/shaders/normaltest.frag")),
-          waterNormalMap(Texture::fromDDSFile("assets/textures/sea_normals.dds")),
+          seaNormalMap(Texture::fromDDSFile("assets/textures/sea_normals.dds")),
+          seaDUDV(Texture::fromDDSFile("assets/textures/sea_dudv.dds")),
           earthShader(ShaderProgram::fromFiles("EarthShader", "assets/shaders/earth.vert", "assets/shaders/earth.frag"))
     {
         generateEarth(&earth);
@@ -34,13 +38,13 @@ class LevelScreen : public Screen
         cam.lookAt(glm::vec3(0));
         cam.update();
         camController.speedMultiplier = 10;
-
-        std::cout << waterNormalMap->height << "\n";
-
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
     }
 
     void render(double deltaTime)
     {
+        time += deltaTime * (KeyInput::pressed(GLFW_KEY_KP_ADD) ? 10 : 1);
         if (KeyInput::justPressed(GLFW_KEY_R))
         {
             earth.destroyIslands();
@@ -50,7 +54,7 @@ class LevelScreen : public Screen
 
         camController.update(deltaTime); // free camera movement
 
-        glClearColor(.3, .1, .6, 1);
+        glClearColor(.01, .01, .05, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glEnable(GL_DEPTH_TEST);
@@ -70,10 +74,16 @@ class LevelScreen : public Screen
         }
 
         earthShader.use();
-        waterNormalMap->bind(0);
+        seaNormalMap->bind(0);
+        seaDUDV->bind(1);
         glm::mat4 mvp = cam.combined;
+        glm::vec3 sunDir = glm::vec3(glm::sin(time * .03), 0, glm::cos(time * .03));
         glUniformMatrix4fv(mvpId, 1, GL_FALSE, &mvp[0][0]);
-        glUniform1i(glGetUniformLocation(earthShader.getProgramId(), "waterNormals"), 0);
+        glUniform1i(glGetUniformLocation(earthShader.getProgramId(), "seaNormals"), 0);
+        glUniform1i(glGetUniformLocation(earthShader.getProgramId(), "seaDUDV"), 1);
+        glUniform1f(glGetUniformLocation(earthShader.getProgramId(), "time"), time);
+        glUniform3f(glGetUniformLocation(earthShader.getProgramId(), "camPos"), cam.position.x, cam.position.y, cam.position.z);
+        glUniform3f(glGetUniformLocation(earthShader.getProgramId(), "sunDir"), sunDir.x, sunDir.y, sunDir.z);
         earth.mesh->render();
 
         lineRenderer.projection = cam.combined;
@@ -81,16 +91,19 @@ class LevelScreen : public Screen
         lineRenderer.line(glm::vec3(0, -300, 0), glm::vec3(0, 300, 0), glm::vec3(0, 1, 0));
         lineRenderer.line(glm::vec3(0, 0, -300), glm::vec3(0, 0, 300), glm::vec3(0, 0, 1));
 
-        int normalOffset = earth.mesh->attributes.getOffset(VertAttributes::NORMAL);
-        int tangentOffset = earth.mesh->attributes.getOffset(VertAttributes::TANGENT);
-        for (int i = 0; i < earth.mesh->nrOfVertices; i++)
-        {
-            auto p0 = earth.mesh->getVec3(i, 0);
-            auto p1 = p0 + earth.mesh->getVec3(i, normalOffset);
-            auto p2 = p0 + earth.mesh->getVec3(i, tangentOffset);
-            lineRenderer.line(p0, p1, glm::vec3(0, 0, 1));
-            lineRenderer.line(p0, p2, glm::vec3(0, 1, 0));
-        }
+        for (int i = 0; i < 100; i += 2)
+            lineRenderer.line(sunDir * glm::vec3(i * 5), sunDir * glm::vec3((i + 1) * 5), glm::vec3(1, 1, 0));
+
+        // int normalOffset = earth.mesh->attributes.getOffset(VertAttributes::NORMAL);
+        // int tangentOffset = earth.mesh->attributes.getOffset(VertAttributes::TANGENT);
+        // for (int i = 0; i < earth.mesh->nrOfVertices; i++)
+        // {
+        //     auto p0 = earth.mesh->getVec3(i, 0);
+        //     auto p1 = p0 + earth.mesh->getVec3(i, normalOffset);
+        //     auto p2 = p0 + earth.mesh->getVec3(i, tangentOffset);
+        //     lineRenderer.line(p0, p1, glm::vec3(0, 0, 1));
+        //     lineRenderer.line(p0, p2, glm::vec3(0, 1, 0));
+        // }
 
         // glClear(GL_DEPTH_BUFFER_BIT);
 
