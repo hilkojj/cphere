@@ -60,7 +60,7 @@ SharedMesh earthMeshGenerator(Planet *earth)
     attrs.add(VertAttributes::NORMAL);
     attrs.add(VertAttributes::TANGENT);
     attrs.add(VertAttributes::TEX_COORDS);
-    return SphereMeshGenerator::generate(earth->name + "_mesh", earth->sphere.radius, 75, 55, attrs);
+    return SphereMeshGenerator::generate(earth->name + "_mesh", earth->sphere.radius, 100, 70, attrs);
 }
 
 } // namespace

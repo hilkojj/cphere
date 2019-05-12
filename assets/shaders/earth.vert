@@ -15,6 +15,7 @@ out vec3 v_camPosTanSpace;
 out vec3 v_sunDirTanSpace;
 out vec3 v_toCamera;
 out mat3 v_fromTanSpace;
+out float v_edge;
 
 void main()
 {
@@ -23,6 +24,9 @@ void main()
     v_tangent = a_tangent;
     v_texCoords = a_texCoords;
 
+    vec3 viewVector =  normalize((camPos - a_normal));
+    v_edge =  1.0 - dot(a_normal, viewVector);
+    v_edge = v_edge * 3.0 - .1;
 
     vec3 up = a_normal;
     vec3 tan = a_tangent;
