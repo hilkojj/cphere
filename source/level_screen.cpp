@@ -11,6 +11,10 @@
 #include "graphics/3d/debug_line_renderer.h"
 #include "utils/math_utils.h"
 #include "graphics/frame_buffer.h"
+#include "utils/math/sphere_mesh_generator.h"
+#include "glm/gtx/transform.hpp"
+
+const float EARTH_RADIUS = 150, ATMOSPHERE_RADIUS = 167;
 
 class LevelScreen : public Screen
 {
@@ -18,17 +22,18 @@ class LevelScreen : public Screen
   public:
     Planet earth;
     PerspectiveCamera cam;
-    ShaderProgram shaderProgram, earthShader, causticsShader;
+    ShaderProgram shaderProgram, earthShader, causticsShader, atmosphereShader;
     FlyingCameraController camController;
     DebugLineRenderer lineRenderer;
     SharedTexture seaNormalMap, seaDUDV, caustics, sand;
+    SharedMesh atmosphereMesh;
 
     FrameBuffer underwaterBuffer;
 
     float time = 0;
 
     LevelScreen()
-        : earth("earth", Sphere(150)),
+        : earth("earth", Sphere(EARTH_RADIUS)),
           cam(PerspectiveCamera(.1, 1000, 1, 1, 75)), camController(&cam),
           
           seaNormalMap(Texture::fromDDSFile("assets/textures/sea_normals.dds")),
@@ -39,11 +44,16 @@ class LevelScreen : public Screen
           shaderProgram(ShaderProgram::fromFiles("NormalTestShader", "gu/assets/shaders/test.vert", "gu/assets/shaders/normaltest.frag")),
           earthShader(ShaderProgram::fromFiles("EarthShader", "assets/shaders/earth.vert", "assets/shaders/earth.frag")),
           causticsShader(ShaderProgram::fromFiles("CausticsShader", "assets/shaders/terrain_caustics.vert", "assets/shaders/terrain_caustics.frag")),
+          atmosphereShader(ShaderProgram::fromFiles("EarthAtmosphereShader", "assets/shaders/earth_atmosphere.vert", "assets/shaders/earth_atmosphere.frag")),
+
+          atmosphereMesh(SphereMeshGenerator::generate("earth_atmosphere", ATMOSPHERE_RADIUS, 90, 70, VertAttributes().add_(VertAttributes::POSITION).add_(VertAttributes::NORMAL))),
 
           underwaterBuffer(FrameBuffer(512, 512))
     {
         underwaterBuffer.addColorTexture(GL_RGB, GL_LINEAR, GL_LINEAR);
         underwaterBuffer.addDepthTexture(GL_LINEAR, GL_LINEAR);
+
+        VertBuffer::uploadSingleMesh(atmosphereMesh);
 
         generateEarth(&earth);
         cam.position = glm::vec3(0, 0, 200);
@@ -66,18 +76,18 @@ class LevelScreen : public Screen
         if (KeyInput::justPressed(GLFW_KEY_R))
         {
             earth.destroyIslands();
-            earth = Planet("earth", Sphere(150));
+            earth = Planet("earth", Sphere(EARTH_RADIUS));
             generateEarth(&earth);
         }
 
         camController.update(deltaTime); // free camera movement
 
-        glClearColor(.01, .01, .05, 1);
+        glClearColor(.01, .03, .1, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glm::vec3 sunDir = glm::vec3(glm::sin(time * .03), 0, glm::cos(time * .03));
 
-        // RENDER UNDERWATER:
+        // // RENDER UNDERWATER:
         underwaterBuffer.bind();
         glDisable(GL_BLEND);
 
@@ -93,6 +103,21 @@ class LevelScreen : public Screen
         glUniform1i(glGetUniformLocation(causticsShader.id(), "terrainTexture"), 1);
         glUniform3f(glGetUniformLocation(causticsShader.id(), "sunDir"), sunDir.x, sunDir.y, sunDir.z);
 
+        for (auto isl : earth.islands)
+        {
+            glUniformMatrix4fv(glGetUniformLocation(causticsShader.id(), "viewTrans"), 1, GL_FALSE, &cam.combined[0][0]);
+            glUniformMatrix4fv(glGetUniformLocation(causticsShader.id(), "worldTrans"), 1, GL_FALSE, &isl->modelInstance->transform[0][0]);
+
+            SharedMesh &mesh = isl->model->parts[0].mesh;
+            mesh->render();
+        }
+
+        underwaterBuffer.unbindCurrent();
+        // // DONE RENDERING UNDERWATER
+
+        // // RENDER ISLANDS:
+        shaderProgram.use();
+        glDisable(GL_BLEND);
         GLuint mvpId = glGetUniformLocation(shaderProgram.id(), "MVP");
 
         for (auto isl : earth.islands)
@@ -104,27 +129,9 @@ class LevelScreen : public Screen
             SharedMesh &mesh = isl->model->parts[0].mesh;
             mesh->render();
         }
+        // // DONE RENDERING ISLANDS
 
-        underwaterBuffer.unbindCurrent();
-        // DONE RENDERING UNDERWATER
-
-        // RENDER ISLANDS:
-        shaderProgram.use();
-        glDisable(GL_BLEND);
-        mvpId = glGetUniformLocation(shaderProgram.id(), "MVP");
-
-        for (auto isl : earth.islands)
-        {
-            glm::mat4 mvp = cam.combined * isl->modelInstance->transform;
-
-            glUniformMatrix4fv(mvpId, 1, GL_FALSE, &mvp[0][0]);
-
-            SharedMesh &mesh = isl->model->parts[0].mesh;
-            mesh->render();
-        }
-        // DONE RENDERING ISLANDS
-
-        // RENDER WATER:
+        // // RENDER WATER:
         earthShader.use();
         glEnable(GL_BLEND);
         seaNormalMap->bind(0);
@@ -145,10 +152,33 @@ class LevelScreen : public Screen
         earth.mesh->render();
         // DONE RENDERING WATER
 
+        // RENDER ATMOSPHERE:
+        atmosphereShader.use();
+        // glDisable(GL_CULL_FACE);
+        // glCullFace(GL_FRONT);
+        glDepthMask(false);
+
+        mvp = glm::mat4(1.0f);
+        glm::vec3 cP = glm::normalize(cam.position) * earth.sphere.radius;
+        float lon = earth.longitude(cP.x, cP.z), lat = earth.latitude(cP.y);
+        mvp = glm::rotate(mvp, -(lon + 90) * mu::DEGREES_TO_RAD, mu::Y);
+        mvp = glm::rotate(mvp, lat * mu::DEGREES_TO_RAD, mu::X);
+        mvp = cam.combined * mvp;
+
+        glUniformMatrix4fv(glGetUniformLocation(atmosphereShader.id(), "MVP"), 1, GL_FALSE, &mvp[0][0]);
+        glUniform3f(glGetUniformLocation(atmosphereShader.id(), "sunDir"), sunDir.x, sunDir.y, sunDir.z);
+        glUniform1f(glGetUniformLocation(atmosphereShader.id(), "camDist"), glm::length(cam.position) - ATMOSPHERE_RADIUS);
+        
+        atmosphereMesh->render();
+        glDepthMask(true);
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+        // DONE RENDERING ATMOSPHERE
+
         lineRenderer.projection = cam.combined;
-        lineRenderer.line(glm::vec3(-300, 0, 0), glm::vec3(300, 0, 0), glm::vec3(1, 0, 0));
-        lineRenderer.line(glm::vec3(0, -300, 0), glm::vec3(0, 300, 0), glm::vec3(0, 1, 0));
-        lineRenderer.line(glm::vec3(0, 0, -300), glm::vec3(0, 0, 300), glm::vec3(0, 0, 1));
+        lineRenderer.line(glm::vec3(-300, 0, 0), glm::vec3(300, 0, 0), mu::X);
+        lineRenderer.line(glm::vec3(0, -300, 0), glm::vec3(0, 300, 0), mu::Y);
+        lineRenderer.line(glm::vec3(0, 0, -300), glm::vec3(0, 0, 300), mu::Z);
 
         for (int i = 0; i < 100; i += 2)
             lineRenderer.line(sunDir * glm::vec3(i * 5), sunDir * glm::vec3((i + 1) * 5), glm::vec3(1, 1, 0));

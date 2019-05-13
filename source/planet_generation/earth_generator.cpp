@@ -20,7 +20,7 @@ void terrainFromShape(std::vector<bool> shape, Island *isl)
     {
         for (int y = 0; y <= isl->height; y++)
         {
-            int beachWidth = 10 + (int)(20 * glm::abs(noise.GetNoise(x * 3, y * 3)));
+            int beachWidth = 10 + (int)(20 * glm::abs(noise.GetNoise(x / 2, y / 2)));
             float distToSea = beachWidth;
 
             for (int x0 = glm::max(0, x - beachWidth); x0 <= glm::min(isl->width, x + beachWidth); x0++)
@@ -36,7 +36,7 @@ void terrainFromShape(std::vector<bool> shape, Island *isl)
                     }
                 }
             }
-            float height = Interpolation::powOut(distToSea / beachWidth, 5);
+            float height = Interpolation::powOut(distToSea / beachWidth, 2);
             height = SEA_BOTTOM + height * glm::abs(SEA_BOTTOM - LAND_LEVEL);
             isl->vertexPositionsOriginal[isl->xyToVertI(x, y)].y = height;
         }

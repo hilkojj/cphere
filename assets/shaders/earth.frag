@@ -72,7 +72,7 @@ void main()
     // fresnel with normal map:
     vec3 viewVector =  normalize(v_camPosTanSpace - normal);
     float fr =  1.0 - dot(normal, viewVector);
-    color.rgb += max(0, fr * 2 - v_edge * .4);
+    color.rgb += max(0, fr * 2 - v_edge * .7);
 
     // diffuse light:
     float lambertTerm = dot(normal, v_sunDirTanSpace);
@@ -83,23 +83,24 @@ void main()
     float specular = dot(reflectDir, normalize(v_toCamera));
     specular = max(0, specular);
     float dampedSpec = pow(specular, 200);
-    color.rgb += dampedSpec * dampedSpec;
+    color.rgb += dampedSpec * dampedSpec * vec3(1, .9, .6);
 
     vec2 dudv = normal.xy * .1;
     vec2 distortedScreenCoords = screenCoords + dudv;
-    distortedScreenCoords.x = max(0, min(1, distortedScreenCoords.x));
-    distortedScreenCoords.y = max(0, min(1, distortedScreenCoords.y));
+    distortedScreenCoords.x = max(0.01, min(.99, distortedScreenCoords.x));
+    distortedScreenCoords.y = max(0.01, min(.99, distortedScreenCoords.y));
 
     color.a = seaDepth * 2;
 
+    // underwater:
     float distortion = min(1, seaDepth * .5);
     vec3 underWaterColor = texture2D(underwaterTexture, distortedScreenCoords * distortion + screenCoords * (1 - distortion)).rgb;
-    if (all(greaterThan(underWaterColor, vec3(.1))))
+    if (all(greaterThan(underWaterColor, vec3(.01))))
     {
-        float underwaterFactor = max(0, (4 - seaDepth) / 4);
+        float underwaterFactor = max(0, (2 - seaDepth) / 2);
 
         vec3 blueish = vec3(underWaterColor.r + underWaterColor.g + underWaterColor.b) / 3;
-        blueish *= vec3(.3, .9, 1);
+        blueish *= normalize(vec3(.16, .8, 1));
 
         underWaterColor *= underwaterFactor;
         underWaterColor += blueish * (1 - underwaterFactor);

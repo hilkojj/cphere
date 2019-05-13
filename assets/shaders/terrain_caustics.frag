@@ -23,8 +23,8 @@ void main() {
 
         color += texture2D(
             causticsSheet,
-            vec2(mod(v_texCoord.x / 1.5 + t * .001, 1./6.), mod(v_texCoord.y / 1.5 + t * .001, 1./6.)) + offset
-        ).rgb * .02;
+            vec2(mod(v_texCoord.x + t * .001, 1./6.), mod(v_texCoord.y + t * .001, 1./6.)) + offset
+        ).rgb * .017;
     }
 
     // light
