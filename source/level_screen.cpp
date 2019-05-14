@@ -13,6 +13,7 @@
 #include "graphics/frame_buffer.h"
 #include "utils/math/sphere_mesh_generator.h"
 #include "glm/gtx/transform.hpp"
+#include "glm/gtx/rotate_vector.hpp"
 
 const float EARTH_RADIUS = 150, ATMOSPHERE_RADIUS = 167;
 
@@ -56,7 +57,7 @@ class LevelScreen : public Screen
         VertBuffer::uploadSingleMesh(atmosphereMesh);
 
         generateEarth(&earth);
-        cam.position = glm::vec3(0, 0, 200);
+        cam.position = glm::vec3(200, 0, 0);
         cam.lookAt(glm::vec3(0));
         cam.update();
         camController.speedMultiplier = 20;
@@ -165,8 +166,12 @@ class LevelScreen : public Screen
         mvp = glm::rotate(mvp, lat * mu::DEGREES_TO_RAD, mu::X);
         mvp = cam.combined * mvp;
 
+        glm::vec3 weirdSunDir = sunDir;
+        weirdSunDir = glm::rotate(weirdSunDir, (lon + 90) * mu::DEGREES_TO_RAD, mu::Y);
+        weirdSunDir = glm::rotate(weirdSunDir, -lat * mu::DEGREES_TO_RAD, mu::X);
+
         glUniformMatrix4fv(glGetUniformLocation(atmosphereShader.id(), "MVP"), 1, GL_FALSE, &mvp[0][0]);
-        glUniform3f(glGetUniformLocation(atmosphereShader.id(), "sunDir"), sunDir.x, sunDir.y, sunDir.z);
+        glUniform3f(glGetUniformLocation(atmosphereShader.id(), "sunDir"), weirdSunDir.x, weirdSunDir.y, weirdSunDir.z);
         glUniform1f(glGetUniformLocation(atmosphereShader.id(), "camDist"), glm::length(cam.position) - ATMOSPHERE_RADIUS);
         
         atmosphereMesh->render();
