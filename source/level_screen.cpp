@@ -24,7 +24,7 @@ class LevelScreen : public Screen
   public:
     Planet earth;
     PerspectiveCamera cam;
-    ShaderProgram shaderProgram, earthShader, causticsShader, terrainShader, atmosphereShader;
+    ShaderProgram shaderProgram, earthShader, causticsShader, terrainShader, atmosphereShader, testShader;
     FlyingCameraController camController;
     DebugLineRenderer lineRenderer;
     SharedTexture seaNormalMap, seaDUDV, caustics, sand;
@@ -54,6 +54,7 @@ class LevelScreen : public Screen
 
           shaderProgram(ShaderProgram::fromFiles("NormalTestShader", "gu/assets/shaders/test.vert", "gu/assets/shaders/normaltest.frag")),
           earthShader(ShaderProgram::fromFiles("EarthShader", "assets/shaders/earth.vert", "assets/shaders/earth.frag")),
+          testShader(ShaderProgram::fromFiles("TestShader", "assets/shaders/earth.vert", "assets/shaders/test.frag")),
           atmosphereShader(ShaderProgram::fromFiles("EarthAtmosphereShader", "assets/shaders/earth_atmosphere.vert", "assets/shaders/earth_atmosphere.frag")),
           causticsShader(ShaderProgram::fromFiles("CausticsShader", "assets/shaders/terrain_caustics.vert", "assets/shaders/terrain_caustics.frag")),
           terrainShader(ShaderProgram::fromFiles("TerrainShader", "assets/shaders/terrain.vert", "assets/shaders/terrain.frag")),
@@ -62,7 +63,7 @@ class LevelScreen : public Screen
 
           underwaterBuffer(FrameBuffer(512, 512))
     {
-        underwaterBuffer.addColorTexture(GL_RGB, GL_LINEAR, GL_LINEAR);
+        underwaterBuffer.addColorTexture(GL_RGBA, GL_LINEAR, GL_LINEAR);
         underwaterBuffer.addDepthTexture(GL_LINEAR, GL_LINEAR);
 
         VertBuffer::uploadSingleMesh(atmosphereMesh);
@@ -99,9 +100,9 @@ class LevelScreen : public Screen
 
         glm::vec3 sunDir = glm::vec3(glm::sin(time * .03), 0, glm::cos(time * .03));
 
-        // // RENDER UNDERWATER:
+        // RENDER UNDERWATER:
         underwaterBuffer.bind();
-        glDisable(GL_BLEND);
+        glEnable(GL_BLEND);
 
         glClearColor(0, 0, 0, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -124,10 +125,28 @@ class LevelScreen : public Screen
             mesh->render();
         }
 
+        glBlendFuncSeparate(GL_ZERO, GL_ONE, GL_ZERO, GL_SRC_ALPHA);
+        glDisable(GL_DEPTH_TEST);
+
+        testShader.use();
+    
+        glUniformMatrix4fv(glGetUniformLocation(testShader.id(), "MVP"), 1, GL_FALSE, &cam.combined[0][0]);
+        glUniform1f(glGetUniformLocation(testShader.id(), "time"), time);
+        glUniform2f(glGetUniformLocation(testShader.id(), "scrSize"), gu::widthPixels, gu::heightPixels);
+        glUniform3f(glGetUniformLocation(testShader.id(), "camPos"), cam.position.x, cam.position.y, cam.position.z);
+        glUniform3f(glGetUniformLocation(testShader.id(), "sunDir"), sunDir.x, sunDir.y, sunDir.z);
+        earth.mesh->render();
+
+        glUniformMatrix4fv(glGetUniformLocation(testShader.id(), "MVP"), 1, GL_FALSE, &glm::translate(glm::scale(cam.combined, glm::vec3(.5)), glm::vec3(0, 200, 0))[0][0]);
+        earth.mesh->render();
+
         underwaterBuffer.unbindCurrent();
         // // DONE RENDERING UNDERWATER
 
-        // // RENDER ISLANDS:
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glEnable(GL_DEPTH_TEST);
+
+        // RENDER ISLANDS:
         terrainShader.use();
         terrainTextures->bind(0);
         glDisable(GL_BLEND);
@@ -145,9 +164,9 @@ class LevelScreen : public Screen
             SharedMesh &mesh = isl->model->parts[0].mesh;
             mesh->render();
         }
-        // // DONE RENDERING ISLANDS
+        // DONE RENDERING ISLANDS
 
-        // // RENDER WATER:
+        // RENDER WATER:
         earthShader.use();
         glEnable(GL_BLEND);
         seaNormalMap->bind(0);
@@ -190,6 +209,8 @@ class LevelScreen : public Screen
         atmosphereMesh->render();
         glDepthMask(true);
         // DONE RENDERING ATMOSPHERE
+
+        glDisable(GL_BLEND);
 
         lineRenderer.projection = cam.combined;
         lineRenderer.line(glm::vec3(-300, 0, 0), glm::vec3(300, 0, 0), mu::X);

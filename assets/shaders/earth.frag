@@ -107,4 +107,8 @@ void main()
         color.rgb *= 1 - underwaterFactor;
         color.rgb += underwaterFactor * underWaterColor;
     }
+    float foam = 1 - texture2D(underwaterTexture, screenCoords).a;
+
+    color *= 1 - foam;
+    color += vec4(1) * foam;
 }
