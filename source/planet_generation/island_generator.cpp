@@ -3,6 +3,7 @@
 #include "utils/math_utils.h"
 #include "../level/planet.h"
 #include "graphics/3d/model_instance.h"
+#include "graphics/3d/tangent_calculator.h"
 
 IslandGenerator::IslandGenerator(int width, int height, Planet *plt, TerrainGenerator terrainGenerator, TextureMapper textureMapper)
     : terrainGenerator(terrainGenerator), textureMapper(textureMapper)
@@ -122,6 +123,7 @@ void IslandGenerator::createModel()
         posOffset = attrs.add(VertAttributes::POSITION),
         norOffset = attrs.add(VertAttributes::NORMAL),
         uvOffset = attrs.add(VertAttributes::TEX_COORDS),
+        tanOffset = attrs.add(VertAttributes::TANGENT),
         texOffset = attrs.add({"TEX_BLEND", 4, GL_FALSE});
 
     SharedMesh mesh = SharedMesh(new Mesh(name + "_mesh", isl->nrOfVerts, isl->width * isl->height * 6, attrs));
@@ -173,6 +175,7 @@ void IslandGenerator::createModel()
         }
     }
     mesh->nrOfIndices = mesh->indices.size();
+    TangentCalculator::addTangentsToMesh(mesh.get());
     isl->model = SharedModel(new Model(name));
     isl->model->parts.push_back({mesh});
     isl->modelInstance = new ModelInstance(isl->model);

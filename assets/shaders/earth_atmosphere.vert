@@ -27,13 +27,8 @@ void main()
     float sunDot = dot(a_normal, sunDir);
     v_alpha *= clamp(sunDot * 2) + .5;
 
-    float orangeDot = dot(a_normal, vec3(sunDir.x, 0, sunDir.z));
+    // float orangeDot = dot(a_normal, vec3(sunDir.x, 0, sunDir.z));
+    // float orange = clamp(orangeDot * 10 - 4.5);
 
-    // v_alpha = 1;
-
-    float orange = clamp(orangeDot * 10 - 4.5);
-
-    // v_color = vec3(orange);
-
-    v_color = vec3(.6, .75, 1) * (1 - orange) + vec3(1, .9, .8) * orange;
+    v_color = vec3(.6, .75, 1);// * (1 - orange) + vec3(1, .9, .8) * orange;
 }

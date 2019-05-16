@@ -2,6 +2,7 @@
 #include "gu/screen.h"
 #include "glad/glad.h"
 #include "graphics/texture.h"
+#include "graphics/texture_array.h"
 #include "level/planet.h"
 #include "input/key_input.h"
 #include "planet_generation/earth_generator.h"
@@ -23,10 +24,11 @@ class LevelScreen : public Screen
   public:
     Planet earth;
     PerspectiveCamera cam;
-    ShaderProgram shaderProgram, earthShader, causticsShader, atmosphereShader;
+    ShaderProgram shaderProgram, earthShader, causticsShader, terrainShader, atmosphereShader;
     FlyingCameraController camController;
     DebugLineRenderer lineRenderer;
     SharedTexture seaNormalMap, seaDUDV, caustics, sand;
+    SharedTexArray terrainTextures;
     SharedMesh atmosphereMesh;
 
     FrameBuffer underwaterBuffer;
@@ -42,12 +44,21 @@ class LevelScreen : public Screen
           caustics(Texture::fromDDSFile("assets/textures/tc_caustics.dds")),
           sand(Texture::fromDDSFile("assets/textures/tc_sand.dds")),
 
+          terrainTextures(TextureArray::fromDDSFiles({
+              "assets/textures/tc_sand.dds",
+              "assets/textures/tc_sand_normal.dds",
+
+              "assets/textures/tc_grass.dds",
+              "assets/textures/tc_grass_dead.dds",
+          })),
+
           shaderProgram(ShaderProgram::fromFiles("NormalTestShader", "gu/assets/shaders/test.vert", "gu/assets/shaders/normaltest.frag")),
           earthShader(ShaderProgram::fromFiles("EarthShader", "assets/shaders/earth.vert", "assets/shaders/earth.frag")),
-          causticsShader(ShaderProgram::fromFiles("CausticsShader", "assets/shaders/terrain_caustics.vert", "assets/shaders/terrain_caustics.frag")),
           atmosphereShader(ShaderProgram::fromFiles("EarthAtmosphereShader", "assets/shaders/earth_atmosphere.vert", "assets/shaders/earth_atmosphere.frag")),
+          causticsShader(ShaderProgram::fromFiles("CausticsShader", "assets/shaders/terrain_caustics.vert", "assets/shaders/terrain_caustics.frag")),
+          terrainShader(ShaderProgram::fromFiles("TerrainShader", "assets/shaders/terrain.vert", "assets/shaders/terrain.frag")),
 
-          atmosphereMesh(SphereMeshGenerator::generate("earth_atmosphere", ATMOSPHERE_RADIUS, 90, 70, VertAttributes().add_(VertAttributes::POSITION).add_(VertAttributes::NORMAL))),
+          atmosphereMesh(SphereMeshGenerator::generate("earth_atmosphere", ATMOSPHERE_RADIUS, 40, 70, VertAttributes().add_(VertAttributes::POSITION).add_(VertAttributes::NORMAL))),
 
           underwaterBuffer(FrameBuffer(512, 512))
     {
@@ -57,7 +68,7 @@ class LevelScreen : public Screen
         VertBuffer::uploadSingleMesh(atmosphereMesh);
 
         generateEarth(&earth);
-        cam.position = glm::vec3(200, 0, 0);
+        cam.position = glm::vec3(0, 0, 200);
         cam.lookAt(glm::vec3(0));
         cam.update();
         camController.speedMultiplier = 20;
@@ -117,15 +128,19 @@ class LevelScreen : public Screen
         // // DONE RENDERING UNDERWATER
 
         // // RENDER ISLANDS:
-        shaderProgram.use();
+        terrainShader.use();
+        terrainTextures->bind(0);
         glDisable(GL_BLEND);
-        GLuint mvpId = glGetUniformLocation(shaderProgram.id(), "MVP");
+        glUniform1i(glGetUniformLocation(terrainShader.id(), "terrainTextures"), 0);
+        glUniform3f(glGetUniformLocation(terrainShader.id(), "sunDir"), sunDir.x, sunDir.y, sunDir.z);
+        glUniform1i(glGetUniformLocation(terrainShader.id(), "backgroundTerrainLayer"), 0);
+        glUniform4f(glGetUniformLocation(terrainShader.id(), "terrainLayers"), 2, 3, 4, 5);
+        glUniform4f(glGetUniformLocation(terrainShader.id(), "hasNormal"), 0, 0, 0, 0); // (background must have normal)
 
         for (auto isl : earth.islands)
         {
-            glm::mat4 mvp = cam.combined * isl->modelInstance->transform;
-
-            glUniformMatrix4fv(mvpId, 1, GL_FALSE, &mvp[0][0]);
+            glUniformMatrix4fv(glGetUniformLocation(terrainShader.id(), "viewTrans"), 1, GL_FALSE, &cam.combined[0][0]);
+            glUniformMatrix4fv(glGetUniformLocation(terrainShader.id(), "worldTrans"), 1, GL_FALSE, &isl->modelInstance->transform[0][0]);
 
             SharedMesh &mesh = isl->model->parts[0].mesh;
             mesh->render();
@@ -155,8 +170,6 @@ class LevelScreen : public Screen
 
         // RENDER ATMOSPHERE:
         atmosphereShader.use();
-        // glDisable(GL_CULL_FACE);
-        // glCullFace(GL_FRONT);
         glDepthMask(false);
 
         mvp = glm::mat4(1.0f);
@@ -176,8 +189,6 @@ class LevelScreen : public Screen
         
         atmosphereMesh->render();
         glDepthMask(true);
-        glEnable(GL_CULL_FACE);
-        glCullFace(GL_BACK);
         // DONE RENDERING ATMOSPHERE
 
         lineRenderer.projection = cam.combined;

@@ -36,6 +36,8 @@ class Island
 
     bool tileAtSeaFloor(int x, int y);
 
+    float distToHeight(int x, int y, float minHeight, float maxHeight, int maxDist);
+
     std::vector<glm::vec3>
         // normal per vertex
         vertexNormals,

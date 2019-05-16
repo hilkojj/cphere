@@ -8,7 +8,7 @@
 int main()
 {
     gu::Config config = {};
-    config.printOpenGLMessages = false;
+    // config.printOpenGLMessages = false;
 
     if (!gu::init(config))
         return -1;

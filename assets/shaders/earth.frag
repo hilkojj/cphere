@@ -2,7 +2,6 @@
 out vec4 color;
 
 in vec3 v_normal;
-in vec3 v_tangent;
 in vec2 v_texCoords;
 in vec3 v_camPosTanSpace;
 in vec3 v_sunDirTanSpace;
@@ -53,7 +52,7 @@ void main()
 
     if (seaDepth < 0) discard;
 
-    color = vec4(0.06, .16, .3, 1.);
+    color = vec4(0.12, .12, .28, 1.);
 
     // create distorted coords:
     float y = v_texCoords.y;
@@ -90,7 +89,7 @@ void main()
     distortedScreenCoords.x = max(0.01, min(.99, distortedScreenCoords.x));
     distortedScreenCoords.y = max(0.01, min(.99, distortedScreenCoords.y));
 
-    color.a = seaDepth * 2;
+    color.a = seaDepth * 3.5;
 
     // underwater:
     float distortion = min(1, seaDepth * .5);

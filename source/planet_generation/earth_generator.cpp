@@ -7,6 +7,7 @@
 #include "utils/json_model_loader.h"
 #include "graphics/3d/tangent_calculator.h"
 #include "utils/math/sphere_mesh_generator.h"
+using namespace glm;
 
 namespace
 {
@@ -20,24 +21,24 @@ void terrainFromShape(std::vector<bool> shape, Island *isl)
     {
         for (int y = 0; y <= isl->height; y++)
         {
-            int beachWidth = 10 + (int)(20 * glm::abs(noise.GetNoise(x / 2, y / 2)));
+            int beachWidth = 10 + (int)(20 * abs(noise.GetNoise(x / 2, y / 2)));
             float distToSea = beachWidth;
 
-            for (int x0 = glm::max(0, x - beachWidth); x0 <= glm::min(isl->width, x + beachWidth); x0++)
+            for (int x0 = max(0, x - beachWidth); x0 <= min(isl->width, x + beachWidth); x0++)
             {
-                for (int y0 = glm::max(0, y - beachWidth); y0 <= glm::min(isl->height, y + beachWidth); y0++)
+                for (int y0 = max(0, y - beachWidth); y0 <= min(isl->height, y + beachWidth); y0++)
                 {
                     if (!shape[isl->xyToVertI(x0, y0)])
                     {
                         // is sea.
                         int xDiff = x - x0;
                         int yDiff = y - y0;
-                        distToSea = glm::min(distToSea, (float)glm::sqrt(xDiff * xDiff + yDiff * yDiff));
+                        distToSea = min(distToSea, (float)sqrt(xDiff * xDiff + yDiff * yDiff));
                     }
                 }
             }
             float height = Interpolation::powOut(distToSea / beachWidth, 2);
-            height = SEA_BOTTOM + height * glm::abs(SEA_BOTTOM - LAND_LEVEL);
+            height = SEA_BOTTOM + height * abs(SEA_BOTTOM - LAND_LEVEL);
             isl->vertexPositionsOriginal[isl->xyToVertI(x, y)].y = height;
         }
     }
@@ -49,8 +50,49 @@ void generateIslandTerrain(Island *isl)
     terrainFromShape(IslandShapeGenerator(isl).shape, isl);
 }
 
+void addGrass(Island *isl)
+{
+    FastNoise noise;
+    for (int x = 0; x <= isl->width; x++)
+    {
+        for (int y = 0; y <= isl->height; y++)
+        {
+            if (isl->vertexPositionsOriginal[isl->xyToVertI(x, y)].y < 0) continue;
+
+            int maxDist = 1 + (int)(10 * abs(noise.GetNoise(x * 3, y * 3)));
+            float dist = max(0.0f, isl->distToHeight(x, y, -100, 0, maxDist + 3) - 3);
+            isl->textureMap[isl->xyToVertI(x, y)][0] = Interpolation::powOut(dist / maxDist, 2);
+        }
+    }
+}
+
+void addDeadGrass(Island *isl)
+{
+    FastNoise noise;
+    noise.SetNoiseType(FastNoise::SimplexFractal);
+
+    float noiseOffset = mu::random(1000);
+
+    for (int x = 0; x <= isl->width; x++)
+    {
+        for (int y = 0; y <= isl->height; y++)
+        {
+            if (isl->textureMap[isl->xyToVertI(x, y)][0] != 1) continue;
+
+            float noiseX = x + noiseOffset, noiseY = y + noiseOffset;
+
+            noiseX += noise.GetNoise(noiseX, noiseY) * 100;
+            noiseY += noise.GetNoise(noiseY, noiseX) * 100;
+
+            isl->textureMap[isl->xyToVertI(x, y)][1] = min(max((noise.GetNoise(noiseX, noiseY) - .2) * 3., 0.0), 1.0);
+        }
+    }
+}
+
 void islandTextureMapper(Island *isl)
 {
+    addGrass(isl);
+    addDeadGrass(isl);
 }
 
 SharedMesh earthMeshGenerator(Planet *earth)

@@ -14,6 +14,9 @@ void main() {
 
     color = texture2D(terrainTexture, v_texCoord).rgb;
 
+    // light
+    float dayLight = dot(v_normal, sunDir) * .3 + .7;
+
     for (float t = time; t < time + .2; t += .02) {
 
         float x = floor(mod(t * 12., 6.));
@@ -24,14 +27,9 @@ void main() {
         color += texture2D(
             causticsSheet,
             vec2(mod(v_texCoord.x + t * .001, 1./6.), mod(v_texCoord.y + t * .001, 1./6.)) + offset
-        ).rgb * .017;
+        ).rgb * .017 * dayLight;
     }
-
-    // light
-    float maxDayLight = dot(v_normal * .7 + sunDir * .3, sunDir) * .4 + .6;
-    float minDayLight = dot(v_normal, sunDir) * .4 + .6;
-    color.r *= maxDayLight;
-    color.g *= maxDayLight * .5 + minDayLight * .5;
-    color.b *= minDayLight;
+    
+    color.rgb *= dayLight;
 }
 
