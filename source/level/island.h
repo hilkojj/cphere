@@ -17,6 +17,7 @@ class Island
     Planet *planet;
     int width, height, nrOfVerts;
     float longitude, latitude;
+    bool isInView = true;
 
     SharedModel model;
     ModelInstance *modelInstance = nullptr;

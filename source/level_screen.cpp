@@ -4,6 +4,7 @@
 #include "graphics/texture.h"
 #include "graphics/texture_array.h"
 #include "level/planet.h"
+#include "level/wave_renderer.h"
 #include "input/key_input.h"
 #include "planet_generation/earth_generator.h"
 #include "utils/camera/flying_camera_controller.h"
@@ -32,6 +33,7 @@ class LevelScreen : public Screen
     SharedMesh atmosphereMesh;
 
     FrameBuffer underwaterBuffer;
+    WaveRenderer *waveRenderer;
 
     float time = 0;
 
@@ -69,6 +71,7 @@ class LevelScreen : public Screen
         VertBuffer::uploadSingleMesh(atmosphereMesh);
 
         generateEarth(&earth);
+        waveRenderer = new WaveRenderer(earth);
         cam.position = glm::vec3(0, 0, 200);
         cam.lookAt(glm::vec3(0));
         cam.update();
@@ -85,12 +88,15 @@ class LevelScreen : public Screen
 
     void render(double deltaTime)
     {
-        time += deltaTime * (KeyInput::pressed(GLFW_KEY_KP_ADD) ? 10 : 1);
+        double newDeltaTime =  deltaTime * (KeyInput::pressed(GLFW_KEY_KP_ADD) ? 10 : 1);
+        time += newDeltaTime;
         if (KeyInput::justPressed(GLFW_KEY_R))
         {
             earth.destroyIslands();
             earth = Planet("earth", Sphere(EARTH_RADIUS));
             generateEarth(&earth);
+            delete waveRenderer;
+            waveRenderer = new WaveRenderer(earth);
         }
 
         camController.update(deltaTime); // free camera movement
@@ -125,26 +131,28 @@ class LevelScreen : public Screen
             mesh->render();
         }
 
-        glBlendFuncSeparate(GL_ZERO, GL_ONE, GL_ZERO, GL_SRC_ALPHA);
-        glDisable(GL_DEPTH_TEST);
+        // waveRenderer->render(deltaTime, cam.combined);
 
-        testShader.use();
+        // glBlendFuncSeparate(GL_ZERO, GL_ONE, GL_ZERO, GL_SRC_ALPHA);
+        // glDisable(GL_DEPTH_TEST);
+
+        // testShader.use();
     
-        glUniformMatrix4fv(glGetUniformLocation(testShader.id(), "MVP"), 1, GL_FALSE, &cam.combined[0][0]);
-        glUniform1f(glGetUniformLocation(testShader.id(), "time"), time);
-        glUniform2f(glGetUniformLocation(testShader.id(), "scrSize"), gu::widthPixels, gu::heightPixels);
-        glUniform3f(glGetUniformLocation(testShader.id(), "camPos"), cam.position.x, cam.position.y, cam.position.z);
-        glUniform3f(glGetUniformLocation(testShader.id(), "sunDir"), sunDir.x, sunDir.y, sunDir.z);
-        earth.mesh->render();
+        // glUniformMatrix4fv(testShader.location("MVP"), 1, GL_FALSE, &cam.combined[0][0]);
+        // glUniform1f(testShader.location("time"), time);
+        // glUniform2f(testShader.location("scrSize"), gu::widthPixels, gu::heightPixels);
+        // glUniform3f(testShader.location("camPos"), cam.position.x, cam.position.y, cam.position.z);
+        // glUniform3f(testShader.location("sunDir"), sunDir.x, sunDir.y, sunDir.z);
+        // earth.mesh->render();
 
-        glUniformMatrix4fv(glGetUniformLocation(testShader.id(), "MVP"), 1, GL_FALSE, &glm::translate(glm::scale(cam.combined, glm::vec3(.5)), glm::vec3(0, 200, 0))[0][0]);
-        earth.mesh->render();
+        // glUniformMatrix4fv(glGetUniformLocation(testShader.id(), "MVP"), 1, GL_FALSE, &glm::translate(glm::scale(cam.combined, glm::vec3(.5)), glm::vec3(0, 200, 0))[0][0]);
+        // earth.mesh->render();
 
         underwaterBuffer.unbindCurrent();
-        // // DONE RENDERING UNDERWATER
+        // DONE RENDERING UNDERWATER
 
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glEnable(GL_DEPTH_TEST);
+        // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        // glEnable(GL_DEPTH_TEST);
 
         // RENDER ISLANDS:
         terrainShader.use();
@@ -186,6 +194,8 @@ class LevelScreen : public Screen
         glUniform3f(glGetUniformLocation(earthShader.id(), "sunDir"), sunDir.x, sunDir.y, sunDir.z);
         earth.mesh->render();
         // DONE RENDERING WATER
+
+        waveRenderer->render(newDeltaTime, cam.combined);
 
         // RENDER ATMOSPHERE:
         atmosphereShader.use();
@@ -245,6 +255,41 @@ class LevelScreen : public Screen
         //         }
         //     }
         // }
+
+        // for (auto isl : earth.islands)
+        // {
+        //     int outlineI = 0;
+        //     for (auto &outline : isl->outlinesLongLat)
+        //     {
+        //         vec3 prev = vec3(0);
+        //         int nrOfPoints = outline.points.size();
+        //         for (int i = 1; i < nrOfPoints - 1; i++)
+        //         {
+        //             vec2 normal = vec2(0);
+
+        //             for (int j = 1; j < 40; j++)
+        //             {
+        //                 int min = i - j;
+        //                 min = (min % nrOfPoints + nrOfPoints) % nrOfPoints;
+
+        //                 normal += outline.points[min] - outline.points[(i + j) % nrOfPoints];
+        //             }
+        //             normal = normalize(vec2(normal.y, -normal.x));
+
+        //             vec2 offsetted = outline.points[i] + normal * vec2(5);
+        //             vec3 p3d = earth.lonLatTo3d(offsetted.x, offsetted.y, 0);
+
+        //             if (prev.x != 0 || prev.y != 0)
+        //             {
+        //                 lineRenderer.line(prev, p3d, mu::Y);
+        //                 lineRenderer.line(isl->outlines3dTransformed[outlineI][i], p3d, mu::Z);
+        //             }
+
+        //             prev = p3d;
+        //         }
+        //         outlineI++;
+        //     }
+        // }
     }
 
     void onResize()
@@ -252,4 +297,10 @@ class LevelScreen : public Screen
         cam.viewportWidth = gu::widthPixels;
         cam.viewportHeight = gu::heightPixels;
     }
+
+    ~LevelScreen()
+    {
+        delete waveRenderer;
+    }
+
 };

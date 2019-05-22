@@ -93,6 +93,7 @@ void islandTextureMapper(Island *isl)
 {
     addGrass(isl);
     addDeadGrass(isl);
+    addDeadGrass(isl);
 }
 
 SharedMesh earthMeshGenerator(Planet *earth)

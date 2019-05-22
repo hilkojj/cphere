@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.0)
 
 project(game)
 set(EXECUTABLE_OUTPUT_PATH "bin")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 file(GLOB_RECURSE source source/*)
 add_executable(game ${source})

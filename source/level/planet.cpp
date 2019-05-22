@@ -21,8 +21,8 @@ float Planet::latitude(float y)
 glm::vec3 Planet::lonLatTo3d(float lon, float lat, float altitude)
 {
     glm::vec3 out(0, sphere.radius + altitude, 0);
-    out = glm::rotate(out, lat * mu::RAD_TO_DEGREES, mu::Z);
-    return glm::rotate(out, -lon * mu::RAD_TO_DEGREES, mu::Y);
+    out = glm::rotate(out, lat * mu::DEGREES_TO_RAD, mu::Z);
+    return glm::rotate(out, -lon * mu::DEGREES_TO_RAD, mu::Y);
 }
 
 void Planet::destroyIslands()
