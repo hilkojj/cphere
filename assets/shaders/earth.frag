@@ -92,24 +92,25 @@ void main()
         vec3 vb = normalize(vec3(size.yx, s12 - s10));
 
         vec3 waveNormal = cross(va, vb);
-        normal = normalize(waveNormal * pow(waveHeight, 3) * 3 * (normal.x + normal.y + .5) + normal);
+        float w = clamp((normal.x + normal.y) * 10 + .6);
+        normal = normalize(waveNormal * pow(waveHeight, 3) * 3 * w + normal);
 
         float foam = clamp((waveHeight - .8) / .2) 
                     * pow(waveHeight, 3) 
                     * sample(foamTexture, vec2(
 
-                        v_texCoords.x * 50, v_texCoords
+                        v_texCoords.x * 100, v_texCoords.y * 20
 
-                    ) + waveNormal.xy * .1, y, 30).r;
+                    ) + waveNormal.xy * .1, y, 30).r * w;
 
-        // color.rgb *= 1 - foam;
-        // color.rgb += foam;
+        color.rgb *= 1 - foam;
+        color.rgb += foam;
     }
 
     // fresnel with normal map:
     vec3 viewVector =  normalize(v_camPosTanSpace - normal);
     float fr =  1.0 - dot(normal, viewVector);
-    color.rgb += max(0, fr * 2 - v_edge * .3);
+    color.rgb += max(0, fr * 2 - v_edge * .1);
 
     // diffuse light:
     float lambertTerm = dot(normal, v_sunDirTanSpace);
