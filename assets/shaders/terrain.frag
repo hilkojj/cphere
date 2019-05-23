@@ -28,10 +28,12 @@ void main() {
         vec4 rgbAndHeight = texture(terrainTextures, vec3(v_texCoord, layer));
         vec3 texNormal = (i == -1 || hasNormal[i] > .5) ? texture(terrainTextures, vec3(v_texCoord, layer + 1)).xyz : vec3(.5, .5, 1);
 
+        if (a == 0) continue;
+
         if (i >= 0)
         {
-            float a0 = (rgbAndHeight.a * 2. - 1.) * (1. - a);
-            if (a < .1) a0 *= a * 10.;
+            float a0 = rgbAndHeight.a * (1. - a);
+            if (a < .1) a0 *= a * 5.;
             a += a0;
             if (a < 0.) a = 0.;
 

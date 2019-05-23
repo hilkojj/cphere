@@ -13,10 +13,14 @@ uniform float timer;
 
 void main()
 {
-    vec3 pos = a_wavefront < .5 ? a_pos0 : a_pos0 * (1 - timer) + a_pos1 * timer;
+    float t = timer;
+    if (a_wavefront < .5)
+        t = max(0., timer * timer * .7);
+    vec3 pos = a_pos0 * (1 - t) + a_pos1 * t;
+    
     gl_Position = view * vec4(pos, 1);
 
     v_wavefront = a_wavefront;
-    v_opacity = a_opacity;
+    v_opacity = a_opacity * min(timer * 3, 1) * min(1, 2 - timer * 2);
 }
 

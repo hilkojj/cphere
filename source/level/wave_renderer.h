@@ -9,7 +9,7 @@
 struct Wave
 {
     SharedMesh mesh;
-    float timer;
+    float timer, timeMultiplier;
 };
 
 struct IslandWaves

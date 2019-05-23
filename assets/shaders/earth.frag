@@ -12,6 +12,7 @@ in float v_edge;
 uniform vec3 sunDir;
 uniform sampler2D seaNormals;
 uniform sampler2D seaDUDV;
+uniform sampler2D foamTexture;
 uniform sampler2D underwaterTexture;
 uniform sampler2D underwaterDepthTexture;
 uniform float time;
@@ -41,6 +42,11 @@ vec4 sample(sampler2D tex, vec2 coords, float y, float scale)
     return c + texture(tex, (v_texCoords * scale) + coords) * (1 - weirdness);
 }
 
+float clamp(float x)
+{
+    return min(1, max(0, x));
+}
+
 void main()
 {
     vec2 screenCoords = gl_FragCoord.xy / scrSize;
@@ -68,10 +74,42 @@ void main()
     normal = normal * normalStrength + vec3(0, 0, 1 - normalStrength);
     normal = normalize(normal);
 
+    // waves:
+    float waveHeight = 1 - texture2D(underwaterTexture, screenCoords).a;
+
+    if (waveHeight > 0)
+    {
+        const ivec3 off = ivec3(-3, 0, 3);
+        const vec2 size = vec2(2.0, 0.0);
+        // https://stackoverflow.com/questions/5281261/generating-a-normal-map-from-a-height-map
+        float s11 = waveHeight;
+        float s01 = textureOffset(underwaterTexture, screenCoords, off.xy).a;
+        float s21 = textureOffset(underwaterTexture, screenCoords, off.zy).a;
+        float s10 = textureOffset(underwaterTexture, screenCoords, off.yx).a;
+        float s12 = textureOffset(underwaterTexture, screenCoords, off.yz).a;
+        
+        vec3 va = normalize(vec3(size.xy, s21 - s01));
+        vec3 vb = normalize(vec3(size.yx, s12 - s10));
+
+        vec3 waveNormal = cross(va, vb);
+        normal = normalize(waveNormal * pow(waveHeight, 3) * 3 * (normal.x + normal.y + .5) + normal);
+
+        float foam = clamp((waveHeight - .8) / .2) 
+                    * pow(waveHeight, 3) 
+                    * sample(foamTexture, vec2(
+
+                        v_texCoords.x * 50, v_texCoords
+
+                    ) + waveNormal.xy * .1, y, 30).r;
+
+        // color.rgb *= 1 - foam;
+        // color.rgb += foam;
+    }
+
     // fresnel with normal map:
     vec3 viewVector =  normalize(v_camPosTanSpace - normal);
     float fr =  1.0 - dot(normal, viewVector);
-    color.rgb += max(0, fr * 2 - v_edge * .7);
+    color.rgb += max(0, fr * 2 - v_edge * .3);
 
     // diffuse light:
     float lambertTerm = dot(normal, v_sunDirTanSpace);
@@ -107,8 +145,5 @@ void main()
         color.rgb *= 1 - underwaterFactor;
         color.rgb += underwaterFactor * underWaterColor;
     }
-    float foam = 1 - texture2D(underwaterTexture, screenCoords).a;
 
-    color *= 1 - foam;
-    color += vec4(1) * foam;
 }

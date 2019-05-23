@@ -28,7 +28,7 @@ class LevelScreen : public Screen
     ShaderProgram shaderProgram, earthShader, causticsShader, terrainShader, atmosphereShader, testShader;
     FlyingCameraController camController;
     DebugLineRenderer lineRenderer;
-    SharedTexture seaNormalMap, seaDUDV, caustics, sand;
+    SharedTexture seaNormalMap, seaDUDV, caustics, sand, foamTexture;
     SharedTexArray terrainTextures;
     SharedMesh atmosphereMesh;
 
@@ -39,12 +39,13 @@ class LevelScreen : public Screen
 
     LevelScreen()
         : earth("earth", Sphere(EARTH_RADIUS)),
-          cam(PerspectiveCamera(.1, 1000, 1, 1, 75)), camController(&cam),
+          cam(PerspectiveCamera(.1, 1000, 1, 1, 55)), camController(&cam),
           
           seaNormalMap(Texture::fromDDSFile("assets/textures/sea_normals.dds")),
           seaDUDV(Texture::fromDDSFile("assets/textures/sea_dudv.dds")),
           caustics(Texture::fromDDSFile("assets/textures/tc_caustics.dds")),
           sand(Texture::fromDDSFile("assets/textures/tc_sand.dds")),
+          foamTexture(Texture::fromDDSFile("assets/textures/tc_foam.dds")),
 
           terrainTextures(TextureArray::fromDDSFiles({
               "assets/textures/tc_sand.dds",
@@ -75,7 +76,7 @@ class LevelScreen : public Screen
         cam.position = glm::vec3(0, 0, 200);
         cam.lookAt(glm::vec3(0));
         cam.update();
-        camController.speedMultiplier = 20;
+        camController.speedMultiplier = 100;
         glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);
 
@@ -131,28 +132,11 @@ class LevelScreen : public Screen
             mesh->render();
         }
 
-        // waveRenderer->render(deltaTime, cam.combined);
-
-        // glBlendFuncSeparate(GL_ZERO, GL_ONE, GL_ZERO, GL_SRC_ALPHA);
-        // glDisable(GL_DEPTH_TEST);
-
-        // testShader.use();
-    
-        // glUniformMatrix4fv(testShader.location("MVP"), 1, GL_FALSE, &cam.combined[0][0]);
-        // glUniform1f(testShader.location("time"), time);
-        // glUniform2f(testShader.location("scrSize"), gu::widthPixels, gu::heightPixels);
-        // glUniform3f(testShader.location("camPos"), cam.position.x, cam.position.y, cam.position.z);
-        // glUniform3f(testShader.location("sunDir"), sunDir.x, sunDir.y, sunDir.z);
-        // earth.mesh->render();
-
-        // glUniformMatrix4fv(glGetUniformLocation(testShader.id(), "MVP"), 1, GL_FALSE, &glm::translate(glm::scale(cam.combined, glm::vec3(.5)), glm::vec3(0, 200, 0))[0][0]);
-        // earth.mesh->render();
+        // render waves to alpha channel of underwaterBuffer
+        waveRenderer->render(newDeltaTime, cam.combined);
 
         underwaterBuffer.unbindCurrent();
         // DONE RENDERING UNDERWATER
-
-        // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        // glEnable(GL_DEPTH_TEST);
 
         // RENDER ISLANDS:
         terrainShader.use();
@@ -181,6 +165,7 @@ class LevelScreen : public Screen
         seaDUDV->bind(1);
         underwaterBuffer.colorTexture->bind(2);
         underwaterBuffer.depthTexture->bind(3);
+        foamTexture->bind(4);
         glm::mat4 mvp = cam.combined;
     
         glUniformMatrix4fv(glGetUniformLocation(earthShader.id(), "MVP"), 1, GL_FALSE, &mvp[0][0]);
@@ -188,14 +173,13 @@ class LevelScreen : public Screen
         glUniform1i(glGetUniformLocation(earthShader.id(), "seaDUDV"), 1);
         glUniform1i(glGetUniformLocation(earthShader.id(), "underwaterTexture"), 2);
         glUniform1i(glGetUniformLocation(earthShader.id(), "underwaterDepthTexture"), 3);
+        glUniform1i(glGetUniformLocation(earthShader.id(), "foamTexture"), 4);
         glUniform1f(glGetUniformLocation(earthShader.id(), "time"), time);
         glUniform2f(glGetUniformLocation(earthShader.id(), "scrSize"), gu::widthPixels, gu::heightPixels);
         glUniform3f(glGetUniformLocation(earthShader.id(), "camPos"), cam.position.x, cam.position.y, cam.position.z);
         glUniform3f(glGetUniformLocation(earthShader.id(), "sunDir"), sunDir.x, sunDir.y, sunDir.z);
         earth.mesh->render();
         // DONE RENDERING WATER
-
-        waveRenderer->render(newDeltaTime, cam.combined);
 
         // RENDER ATMOSPHERE:
         atmosphereShader.use();

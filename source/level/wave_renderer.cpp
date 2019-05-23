@@ -33,7 +33,7 @@ void WaveRenderer::createWavesForIsland(Island *isl)
         for (int i = 0; i < smoothed.points.size(); i++)
             smoothed.points[i] = outline.points[i * 3];
 
-        for (int x = 0; x < 10; x++)
+        // for (int x = 0; x < 2; x++)
             for (int i = 1; i < smoothed.points.size() - 1; i++)
                 smoothed.points[i] = (smoothed.points[i - 1] + smoothed.points[i + 1]) / vec2(2);
         createWavesForOutline(islandWaves.back(), smoothed);
@@ -42,7 +42,7 @@ void WaveRenderer::createWavesForIsland(Island *isl)
 
 void WaveRenderer::createWavesForOutline(IslandWaves &islWaves, Polygon &outline)
 {
-    int nrOfPoints = outline.points.size(); 
+    int nrOfPoints = outline.points.size();
     Polygon offsetted = Polygon(nrOfPoints);
     offsetted.points[0] = offsetted.points[nrOfPoints - 1] = outline.points[0];
 
@@ -60,11 +60,7 @@ void WaveRenderer::createWavesForOutline(IslandWaves &islWaves, Polygon &outline
         }
         normal = normalize(vec2(normal.y, -normal.x));
 
-        offsetted.points[i] = outline.points[i] + normal * vec2(4);
-
-        if (outline.contains(offsetted.points[i].x, offsetted.points[i].y))
-            offsetted.points[i] = outline.points[i] + normal * vec2(-5);
-
+        offsetted.points[i] = outline.points[i] + normal * vec2(5.5);
     }
 
     int nrOfWaves = nrOfPoints / 5;
@@ -72,7 +68,7 @@ void WaveRenderer::createWavesForOutline(IslandWaves &islWaves, Polygon &outline
     {
         for (int j = 0; j < 10; j++)
         {
-            int waveLength = min(mu::randomInt(5, 45), nrOfPoints);
+            int waveLength = min(mu::randomInt(3, 20), nrOfPoints);
             int waveStart = mu::randomInt(0, nrOfPoints - waveLength);
             if (createWave(islWaves, outline, offsetted, waveStart, waveLength))
                 break;
@@ -89,7 +85,7 @@ bool WaveRenderer::createWave(IslandWaves &islWaves, Polygon &outline, Polygon &
         vec2 p0 = offsetted.points[i + waveStart],
             p1 = outline.points[i + waveStart];
 
-        p1 -= (p0 - p1) * vec2(.3);
+        p1 -= (p0 - p1) * vec2(.8);
 
         for (int j = i + 1; j < waveLength; j++)
             if (mu::lineSegmentsIntersect(p0, p1, offsetted.points[j + waveStart], outline.points[j + waveStart]))
@@ -128,7 +124,7 @@ bool WaveRenderer::createWave(IslandWaves &islWaves, Polygon &outline, Polygon &
 void WaveRenderer::render(double deltaTime, const glm::mat4 &view)
 {
     shader.use();
-    // glBlendFuncSeparate(GL_ZERO, GL_ONE, GL_ZERO, GL_SRC_ALPHA);
+    glBlendFuncSeparate(GL_ZERO, GL_ONE, GL_ZERO, GL_SRC_ALPHA);
     glDisable(GL_DEPTH_TEST);
     glUniformMatrix4fv(shader.location("view"), 1, GL_FALSE, &view[0][0]);
     for (auto &islWaves : islandWaves)
@@ -137,17 +133,20 @@ void WaveRenderer::render(double deltaTime, const glm::mat4 &view)
 
         for (auto &wave : islWaves.waves)
         {
-            if (wave.timer == 0 && mu::random() < .03 * deltaTime) wave.timer = .0001;
+            if (wave.timer == 0 && mu::random() < .2 * deltaTime)
+            {
+                wave.timer = .0001;
+                wave.timeMultiplier = mu::random(.7, 1);
+            }
             if (wave.timer == 0) continue;
 
             glUniform1f(shader.location("timer"), wave.timer);
             wave.mesh->render();
-
-            wave.timer += deltaTime * .15;
+            wave.timer += deltaTime * .09 * wave.timeMultiplier;
             if (wave.timer > 1) wave.timer = 0;
         }
     }
-    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_DEPTH_TEST);
 }
 
