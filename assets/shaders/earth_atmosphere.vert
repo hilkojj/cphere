@@ -19,9 +19,9 @@ void main()
     gl_Position = MVP * vec4(a_pos, 1);
 
     float camDot = 1 - dot(a_normal, vec3(0, 1, 0));
-    float edge = camDot * 10 - (camDist / 80);
+    float edge = camDot * 10 - (camDist / 110);
     edge = clamp(edge);
-    v_alpha = clamp(camDot * 4.5 * max(.3, clamp(1 - camDist / 800))) - edge;
+    v_alpha = clamp(camDot * 3.5 * max(.1, clamp(1 - camDist / 600))) - edge;
 
 
     float sunDot = dot(a_normal, sunDir);

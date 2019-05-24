@@ -58,23 +58,24 @@ void main()
 
     if (seaDepth < 0) discard;
 
-    color = vec4(0.12, .12, .28, 1.);
+    color = vec4(0.12, .13, .27, 1.);
 
     // create distorted coords:
     float y = v_texCoords.y;
-    vec2 distortedTexCoords = sample(seaDUDV, vec2(time * .01, 0), y, 60).rg * .1;
+    vec2 distortedTexCoords = sample(seaDUDV, vec2(time * .01, 0), y, 20).rg * .1;
     distortedTexCoords = vec2(distortedTexCoords.x - time * .02, distortedTexCoords.y + sin(time) * .04);
-    vec2 totalDistortion = (sample(seaDUDV, distortedTexCoords, y, 60).rg * 2.0 - 1.0) * .02;
+    vec2 totalDistortion = (sample(seaDUDV, distortedTexCoords, y, 20).rg * 2.0 - 1.0) * .02;
 
     // get normal vector:
-    vec3 normal = sample(seaNormals, totalDistortion, y, 20).xyz;
+    vec3 normal = sample(seaNormals, totalDistortion, y, 30).xyz;
     normal *= 2;
     normal -= 1;
-    float normalStrength = max(.2, ((100. - distToSea) / 100.) * .5);
+    float normalStrength = max(.2, ((100. - distToSea) / 100.) * .6);
+    vec3 strongNormal = normal;
     normal = normal * normalStrength + vec3(0, 0, 1 - normalStrength);
     normal = normalize(normal);
 
-    // waves:
+    // waves from heightmap:
     float waveHeight = 1 - texture2D(underwaterTexture, screenCoords).a;
 
     if (waveHeight > 0)
@@ -92,59 +93,71 @@ void main()
         vec3 vb = normalize(vec3(size.yx, s12 - s10));
 
         vec3 waveNormal = cross(va, vb);
-        float w = clamp((normal.x + normal.y) * 10 + .6);
-        normal = normalize(waveNormal * pow(waveHeight, 3) * 3 * w + normal);
+        float waveFactor = clamp(max(0, normal.x + normal.y) * 10 + .5);
 
         float foam = clamp((waveHeight - .8) / .2) 
+                * pow(waveHeight, 3) 
                     * pow(waveHeight, 3) 
-                    * sample(foamTexture, vec2(
+                * pow(waveHeight, 3) 
+                * sample(foamTexture, vec2(
 
-                        v_texCoords.x * 100, v_texCoords.y * 20
+                    v_texCoords.x * 100, v_texCoords.y * 20
 
-                    ) + waveNormal.xy * .1, y, 30).r * w;
+            ) + waveNormal.xy * .1, y, 30).r * waveFactor;
 
-        color.rgb *= 1 - foam;
         color.rgb += foam;
+        
+        waveFactor *= clamp(min(screenCoords.x, 1 - screenCoords.x) / .05);
+
+        normal = normalize(waveNormal * pow(waveHeight, 3) * 20 * clamp((100. - distToSea) / 100.) * waveFactor + normal);
     }
 
     // fresnel with normal map:
     vec3 viewVector =  normalize(v_camPosTanSpace - normal);
     float fr =  1.0 - dot(normal, viewVector);
-    color.rgb += max(0, fr * 2 - v_edge * .1);
+    color.rgb += clamp(fr * 1.8 - v_edge * .5);
 
     // diffuse light:
     float lambertTerm = dot(normal, v_sunDirTanSpace);
     color.rgb *= lambertTerm * .3 + .7;
 
-    // specular light:
-    vec3 reflectDir = reflect(sunDir, normal * v_fromTanSpace);
+    // specular light 1:
+    vec3 reflectDir = reflect(sunDir, strongNormal * v_fromTanSpace);
     float specular = dot(reflectDir, normalize(v_toCamera));
-    specular = max(0, specular);
-    float dampedSpec = pow(specular, 200);
-    color.rgb += dampedSpec * dampedSpec * vec3(1, .9, .6);
+    specular = clamp(specular);
+    float dampedSpec = pow(specular, 100);
+    color.rgb += dampedSpec * .1 * vec3(.8, .8, .6);
+
+    // specular light 2:
+    reflectDir = reflect(sunDir, normal * v_fromTanSpace);
+    specular = dot(reflectDir, normalize(v_toCamera));
+    specular = clamp(specular);
+    dampedSpec = pow(specular, 600);
+    color.rgb += dampedSpec * .4 * vec3(1, .9, .6);
 
     vec2 dudv = normal.xy * .1;
     vec2 distortedScreenCoords = screenCoords + dudv;
     distortedScreenCoords.x = max(0.01, min(.99, distortedScreenCoords.x));
     distortedScreenCoords.y = max(0.01, min(.99, distortedScreenCoords.y));
 
-    color.a = seaDepth * 3.5;
+    color.a = seaDepth * 4;
 
     // underwater:
     float distortion = min(1, seaDepth * .5);
     vec3 underWaterColor = texture2D(underwaterTexture, distortedScreenCoords * distortion + screenCoords * (1 - distortion)).rgb;
     if (all(greaterThan(underWaterColor, vec3(.01))))
     {
-        float underwaterFactor = max(0, (2 - seaDepth) / 2);
+        float underwaterFactor = max(0, (4 - seaDepth) / 4);
 
         vec3 blueish = vec3(underWaterColor.r + underWaterColor.g + underWaterColor.b) / 3;
         blueish *= normalize(vec3(.16, .8, 1));
 
-        underWaterColor *= underwaterFactor;
-        underWaterColor += blueish * (1 - underwaterFactor);
+        float blueFactor = clamp(underwaterFactor - .1);
+        underWaterColor *= blueFactor;
+        underWaterColor += blueish * (1 - blueFactor);
+
 
         color.rgb *= 1 - underwaterFactor;
         color.rgb += underwaterFactor * underWaterColor;
     }
-
 }

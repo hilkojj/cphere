@@ -21,7 +21,7 @@ void terrainFromShape(std::vector<bool> shape, Island *isl)
     {
         for (int y = 0; y <= isl->height; y++)
         {
-            int beachWidth = 10 + (int)(20 * abs(noise.GetNoise(x / 2, y / 2)));
+            int beachWidth = 20 + (int)(20 * abs(noise.GetNoise(x / 2, y / 2)));
             float distToSea = beachWidth;
 
             for (int x0 = max(0, x - beachWidth); x0 <= min(isl->width, x + beachWidth); x0++)

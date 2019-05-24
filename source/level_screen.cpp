@@ -17,7 +17,7 @@
 #include "glm/gtx/transform.hpp"
 #include "glm/gtx/rotate_vector.hpp"
 
-const float EARTH_RADIUS = 150, ATMOSPHERE_RADIUS = 167;
+const float EARTH_RADIUS = 150, ATMOSPHERE_RADIUS = 178;
 
 class LevelScreen : public Screen
 {
@@ -62,7 +62,7 @@ class LevelScreen : public Screen
           causticsShader(ShaderProgram::fromFiles("CausticsShader", "assets/shaders/terrain_caustics.vert", "assets/shaders/terrain_caustics.frag")),
           terrainShader(ShaderProgram::fromFiles("TerrainShader", "assets/shaders/terrain.vert", "assets/shaders/terrain.frag")),
 
-          atmosphereMesh(SphereMeshGenerator::generate("earth_atmosphere", ATMOSPHERE_RADIUS, 40, 70, VertAttributes().add_(VertAttributes::POSITION).add_(VertAttributes::NORMAL))),
+          atmosphereMesh(SphereMeshGenerator::generate("earth_atmosphere", ATMOSPHERE_RADIUS, 60, 70, VertAttributes().add_(VertAttributes::POSITION).add_(VertAttributes::NORMAL))),
 
           underwaterBuffer(FrameBuffer(512, 512))
     {
@@ -213,67 +213,6 @@ class LevelScreen : public Screen
 
         for (int i = 0; i < 100; i += 2)
             lineRenderer.line(sunDir * glm::vec3(i * 5), sunDir * glm::vec3((i + 1) * 5), glm::vec3(1, 1, 0));
-
-        // int normalOffset = earth.mesh->attributes.getOffset(VertAttributes::NORMAL);
-        // int tangentOffset = earth.mesh->attributes.getOffset(VertAttributes::TANGENT);
-        // for (int i = 0; i < earth.mesh->nrOfVertices; i++)
-        // {
-        //     auto p0 = earth.mesh->getVec3(i, 0);
-        //     auto p1 = p0 + earth.mesh->getVec3(i, normalOffset);
-        //     auto p2 = p0 + earth.mesh->getVec3(i, tangentOffset);
-        //     lineRenderer.line(p0, p1, glm::vec3(0, 0, 1));
-        //     lineRenderer.line(p0, p2, glm::vec3(0, 1, 0));
-        // }
-
-        // glClear(GL_DEPTH_BUFFER_BIT);
-
-        // for (auto isl : earth.islands)
-        // {
-        //     for (auto &outline : isl->outlines3dTransformed)
-        //     {
-        //         auto *prev = &outline[0];
-        //         for (auto &p : outline)
-        //         {
-        //             lineRenderer.line(*prev, p, glm::vec3(1, 0, 0));
-        //             prev = &p;
-        //         }
-        //     }
-        // }
-
-        // for (auto isl : earth.islands)
-        // {
-        //     int outlineI = 0;
-        //     for (auto &outline : isl->outlinesLongLat)
-        //     {
-        //         vec3 prev = vec3(0);
-        //         int nrOfPoints = outline.points.size();
-        //         for (int i = 1; i < nrOfPoints - 1; i++)
-        //         {
-        //             vec2 normal = vec2(0);
-
-        //             for (int j = 1; j < 40; j++)
-        //             {
-        //                 int min = i - j;
-        //                 min = (min % nrOfPoints + nrOfPoints) % nrOfPoints;
-
-        //                 normal += outline.points[min] - outline.points[(i + j) % nrOfPoints];
-        //             }
-        //             normal = normalize(vec2(normal.y, -normal.x));
-
-        //             vec2 offsetted = outline.points[i] + normal * vec2(5);
-        //             vec3 p3d = earth.lonLatTo3d(offsetted.x, offsetted.y, 0);
-
-        //             if (prev.x != 0 || prev.y != 0)
-        //             {
-        //                 lineRenderer.line(prev, p3d, mu::Y);
-        //                 lineRenderer.line(isl->outlines3dTransformed[outlineI][i], p3d, mu::Z);
-        //             }
-
-        //             prev = p3d;
-        //         }
-        //         outlineI++;
-        //     }
-        // }
     }
 
     void onResize()

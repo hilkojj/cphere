@@ -26,8 +26,8 @@ void main() {
 
         color.rgb += texture2D(
             causticsSheet,
-            vec2(mod(v_texCoord.x + t * .001, 1./6.), mod(v_texCoord.y + t * .001, 1./6.)) + offset
-        ).rgb * .017 * dayLight;
+            vec2(mod(v_texCoord.x * .7 + t * .001, 1./6.), mod(v_texCoord.y * .7 + t * .001, 1./6.)) + offset
+        ).rgb * .01 * dayLight;
     }
     
     color.rgb *= dayLight;
