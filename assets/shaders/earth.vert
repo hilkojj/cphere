@@ -112,7 +112,10 @@ float snoise(vec3 v) {
 
 void main()
 {
-    vec3 pos = a_pos * (1 + snoise(a_normal * 10 + vec3(time * .1)) * .003);
+    gl_Position = MVP * vec4(a_pos, 1); // temporary
+    float waveMultiplier = max(.1, min(1, 1 - (gl_Position.z - 20) / 100));
+
+    vec3 pos = a_pos * (1 + snoise(a_normal * 10 + vec3(time * .1)) * .003 * waveMultiplier);
     gl_Position = MVP * vec4(pos, 1);
     v_normal = a_normal;
     v_tangent = a_tangent;
@@ -126,7 +129,7 @@ void main()
         snoise(a_normal * 10 + vec3(time * .1)),
         snoise(vec3(a_normal.z, a_normal.x, a_normal.y) * 10 + vec3(time * .1)),
         snoise(vec3(a_normal.y, a_normal.x, a_normal.y) * 10 + vec3(time * .1))
-    ) * .14 * (1 - v_edge));
+    ) * .3 * waveMultiplier);
     vec3 tan = a_tangent;
     vec3 bitan = normalize(cross(up, tan));
 

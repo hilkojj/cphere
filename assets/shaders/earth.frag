@@ -70,7 +70,7 @@ void main()
     vec3 normal = sample(seaNormals, totalDistortion, y, 30).xyz;
     normal *= 2;
     normal -= 1;
-    float normalStrength = max(.2, ((100. - distToSea) / 100.) * .6);
+    float normalStrength = max(.1, ((100. - distToSea) / 100.) * .6);
     vec3 strongNormal = normal;
     normal = normal * normalStrength + vec3(0, 0, 1 - normalStrength);
     normal = normalize(normal);
@@ -115,7 +115,8 @@ void main()
     // fresnel with normal map:
     vec3 viewVector =  normalize(v_camPosTanSpace - normal);
     float fr =  1.0 - dot(normal, viewVector);
-    color.rgb += clamp(fr * 1.8 - v_edge * .5);
+    float reduceEdgeFresnel = clamp((distToSea - 90) / 100) * .55;
+    color.rgb += clamp(fr * 1.8 - v_edge * reduceEdgeFresnel);
 
     // diffuse light:
     float lambertTerm = dot(normal, v_sunDirTanSpace);

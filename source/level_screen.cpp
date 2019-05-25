@@ -17,7 +17,7 @@
 #include "glm/gtx/transform.hpp"
 #include "glm/gtx/rotate_vector.hpp"
 
-const float EARTH_RADIUS = 150, ATMOSPHERE_RADIUS = 178;
+const float EARTH_RADIUS = 150, ATMOSPHERE_RADIUS = 185;
 
 class LevelScreen : public Screen
 {
