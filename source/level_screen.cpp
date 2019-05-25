@@ -5,6 +5,7 @@
 #include "graphics/texture_array.h"
 #include "level/planet.h"
 #include "level/wave_renderer.h"
+#include "level/space_renderer.h"
 #include "input/key_input.h"
 #include "planet_generation/earth_generator.h"
 #include "utils/camera/flying_camera_controller.h"
@@ -34,6 +35,7 @@ class LevelScreen : public Screen
 
     FrameBuffer underwaterBuffer;
     WaveRenderer *waveRenderer;
+    SpaceRenderer spaceRenderer;
 
     float time = 0;
 
@@ -102,7 +104,6 @@ class LevelScreen : public Screen
 
         camController.update(deltaTime); // free camera movement
 
-        glClearColor(.01, .03, .1, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glm::vec3 sunDir = glm::vec3(glm::sin(time * .03), 0, glm::cos(time * .03));
@@ -169,21 +170,24 @@ class LevelScreen : public Screen
         glm::mat4 mvp = cam.combined;
     
         glUniformMatrix4fv(glGetUniformLocation(earthShader.id(), "MVP"), 1, GL_FALSE, &mvp[0][0]);
-        glUniform1i(glGetUniformLocation(earthShader.id(), "seaNormals"), 0);
-        glUniform1i(glGetUniformLocation(earthShader.id(), "seaDUDV"), 1);
-        glUniform1i(glGetUniformLocation(earthShader.id(), "underwaterTexture"), 2);
-        glUniform1i(glGetUniformLocation(earthShader.id(), "underwaterDepthTexture"), 3);
-        glUniform1i(glGetUniformLocation(earthShader.id(), "foamTexture"), 4);
-        glUniform1f(glGetUniformLocation(earthShader.id(), "time"), time);
-        glUniform2f(glGetUniformLocation(earthShader.id(), "scrSize"), gu::widthPixels, gu::heightPixels);
-        glUniform3f(glGetUniformLocation(earthShader.id(), "camPos"), cam.position.x, cam.position.y, cam.position.z);
-        glUniform3f(glGetUniformLocation(earthShader.id(), "sunDir"), sunDir.x, sunDir.y, sunDir.z);
+        glUniform1i(earthShader.location("seaNormals"), 0);
+        glUniform1i(earthShader.location("seaDUDV"), 1);
+        glUniform1i(earthShader.location("underwaterTexture"), 2);
+        glUniform1i(earthShader.location("underwaterDepthTexture"), 3);
+        glUniform1i(earthShader.location("foamTexture"), 4);
+        glUniform1f(earthShader.location("time"), time);
+        glUniform2f(earthShader.location("scrSize"), gu::widthPixels, gu::heightPixels);
+        glUniform3f(earthShader.location("camPos"), cam.position.x, cam.position.y, cam.position.z);
+        glUniform3f(earthShader.location("sunDir"), sunDir.x, sunDir.y, sunDir.z);
         earth.mesh->render();
         // DONE RENDERING WATER
+
+        spaceRenderer.render(newDeltaTime, cam);
 
         // RENDER ATMOSPHERE:
         atmosphereShader.use();
         glDepthMask(false);
+        glEnable(GL_BLEND);
 
         mvp = glm::mat4(1.0f);
         glm::vec3 cP = glm::normalize(cam.position) * earth.sphere.radius;
