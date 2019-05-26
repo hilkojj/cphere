@@ -6,6 +6,7 @@
 #include "level/planet.h"
 #include "level/wave_renderer.h"
 #include "input/key_input.h"
+#include "input/mouse_input.h"
 #include "planet_generation/earth_generator.h"
 #include "utils/camera/flying_camera_controller.h"
 #include "graphics/shader_program.h"
@@ -73,7 +74,7 @@ class LevelScreen : public Screen
 
         generateEarth(&earth);
         waveRenderer = new WaveRenderer(earth);
-        cam.position = glm::vec3(0, 0, 200);
+        cam.position = glm::vec3(280, 90, 280);
         cam.lookAt(glm::vec3(0));
         cam.update();
         camController.speedMultiplier = 100;
@@ -100,10 +101,25 @@ class LevelScreen : public Screen
             waveRenderer = new WaveRenderer(earth);
         }
 
-        camController.update(deltaTime); // free camera movement
-
         glClearColor(.01, .03, .1, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        Island *hoveredIsland = NULL;
+
+        if (KeyInput::justPressed(GLFW_KEY_G))
+        {
+            MouseInput::setLockedMode(false);
+        }
+        else if (KeyInput::justReleased(GLFW_KEY_G))
+        {
+            MouseInput::setLockedMode(true);
+        }
+        if (!KeyInput::pressed(GLFW_KEY_G))
+            camController.update(deltaTime); // free camera movement
+        else
+        {
+            hoveredIsland = earth.islUnderCursor(cam);
+        }
 
         glm::vec3 sunDir = glm::vec3(glm::sin(time * .03), 0, glm::cos(time * .03));
 
@@ -118,10 +134,10 @@ class LevelScreen : public Screen
         caustics->bind(0);
         sand->bind(1);
 
-        glUniform1f(glGetUniformLocation(causticsShader.id(), "time"), time);
-        glUniform1i(glGetUniformLocation(causticsShader.id(), "causticsSheet"), 0);
-        glUniform1i(glGetUniformLocation(causticsShader.id(), "terrainTexture"), 1);
-        glUniform3f(glGetUniformLocation(causticsShader.id(), "sunDir"), sunDir.x, sunDir.y, sunDir.z);
+        glUniform1f(causticsShader.location("time"), time);
+        glUniform1i(causticsShader.location("causticsSheet"), 0);
+        glUniform1i(causticsShader.location("terrainTexture"), 1);
+        glUniform3f(causticsShader.location("sunDir"), sunDir.x, sunDir.y, sunDir.z);
 
         for (auto isl : earth.islands)
         {
@@ -142,16 +158,18 @@ class LevelScreen : public Screen
         terrainShader.use();
         terrainTextures->bind(0);
         glDisable(GL_BLEND);
-        glUniform1i(glGetUniformLocation(terrainShader.id(), "terrainTextures"), 0);
-        glUniform3f(glGetUniformLocation(terrainShader.id(), "sunDir"), sunDir.x, sunDir.y, sunDir.z);
-        glUniform1i(glGetUniformLocation(terrainShader.id(), "backgroundTerrainLayer"), 0);
-        glUniform4f(glGetUniformLocation(terrainShader.id(), "terrainLayers"), 2, 3, 4, 5);
-        glUniform4f(glGetUniformLocation(terrainShader.id(), "hasNormal"), 0, 0, 0, 0); // (background must have normal)
+        glUniform1i(terrainShader.location("terrainTextures"), 0);
+        glUniform3f(terrainShader.location("sunDir"), sunDir.x, sunDir.y, sunDir.z);
+        glUniform1i(terrainShader.location("backgroundTerrainLayer"), 0);
+        glUniform4f(terrainShader.location("terrainLayers"), 2, 3, 4, 5);
+        glUniform4f(terrainShader.location("hasNormal"), 0, 0, 0, 0); // (background must have normal)
 
         for (auto isl : earth.islands)
         {
-            glUniformMatrix4fv(glGetUniformLocation(terrainShader.id(), "viewTrans"), 1, GL_FALSE, &cam.combined[0][0]);
-            glUniformMatrix4fv(glGetUniformLocation(terrainShader.id(), "worldTrans"), 1, GL_FALSE, &isl->modelInstance->transform[0][0]);
+            if (isl == hoveredIsland) continue;
+
+            glUniformMatrix4fv(terrainShader.location("viewTrans"), 1, GL_FALSE, &cam.combined[0][0]);
+            glUniformMatrix4fv(terrainShader.location("worldTrans"), 1, GL_FALSE, &isl->modelInstance->transform[0][0]);
 
             SharedMesh &mesh = isl->model->parts[0].mesh;
             mesh->render();
@@ -169,15 +187,15 @@ class LevelScreen : public Screen
         glm::mat4 mvp = cam.combined;
     
         glUniformMatrix4fv(glGetUniformLocation(earthShader.id(), "MVP"), 1, GL_FALSE, &mvp[0][0]);
-        glUniform1i(glGetUniformLocation(earthShader.id(), "seaNormals"), 0);
-        glUniform1i(glGetUniformLocation(earthShader.id(), "seaDUDV"), 1);
-        glUniform1i(glGetUniformLocation(earthShader.id(), "underwaterTexture"), 2);
-        glUniform1i(glGetUniformLocation(earthShader.id(), "underwaterDepthTexture"), 3);
-        glUniform1i(glGetUniformLocation(earthShader.id(), "foamTexture"), 4);
-        glUniform1f(glGetUniformLocation(earthShader.id(), "time"), time);
-        glUniform2f(glGetUniformLocation(earthShader.id(), "scrSize"), gu::widthPixels, gu::heightPixels);
-        glUniform3f(glGetUniformLocation(earthShader.id(), "camPos"), cam.position.x, cam.position.y, cam.position.z);
-        glUniform3f(glGetUniformLocation(earthShader.id(), "sunDir"), sunDir.x, sunDir.y, sunDir.z);
+        glUniform1i(earthShader.location("seaNormals"), 0);
+        glUniform1i(earthShader.location("seaDUDV"), 1);
+        glUniform1i(earthShader.location("underwaterTexture"), 2);
+        glUniform1i(earthShader.location("underwaterDepthTexture"), 3);
+        glUniform1i(earthShader.location("foamTexture"), 4);
+        glUniform1f(earthShader.location("time"), time);
+        glUniform2f(earthShader.location("scrSize"), gu::widthPixels, gu::heightPixels);
+        glUniform3f(earthShader.location("camPos"), cam.position.x, cam.position.y, cam.position.z);
+        glUniform3f(earthShader.location("sunDir"), sunDir.x, sunDir.y, sunDir.z);
         earth.mesh->render();
         // DONE RENDERING WATER
 
@@ -196,9 +214,9 @@ class LevelScreen : public Screen
         weirdSunDir = glm::rotate(weirdSunDir, (lon + 90) * mu::DEGREES_TO_RAD, mu::Y);
         weirdSunDir = glm::rotate(weirdSunDir, -lat * mu::DEGREES_TO_RAD, mu::X);
 
-        glUniformMatrix4fv(glGetUniformLocation(atmosphereShader.id(), "MVP"), 1, GL_FALSE, &mvp[0][0]);
-        glUniform3f(glGetUniformLocation(atmosphereShader.id(), "sunDir"), weirdSunDir.x, weirdSunDir.y, weirdSunDir.z);
-        glUniform1f(glGetUniformLocation(atmosphereShader.id(), "camDist"), glm::length(cam.position) - ATMOSPHERE_RADIUS);
+        glUniformMatrix4fv(atmosphereShader.location("MVP"), 1, GL_FALSE, &mvp[0][0]);
+        glUniform3f(atmosphereShader.location("sunDir"), weirdSunDir.x, weirdSunDir.y, weirdSunDir.z);
+        glUniform1f(atmosphereShader.location("camDist"), glm::length(cam.position) - ATMOSPHERE_RADIUS);
         
         atmosphereMesh->render();
         glDepthMask(true);

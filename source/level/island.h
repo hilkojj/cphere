@@ -39,6 +39,8 @@ class Island
 
     float distToHeight(int x, int y, float minHeight, float maxHeight, int maxDist);
 
+    bool containsLonLatPoint(float lon, float lat);
+
     std::vector<glm::vec3>
         // normal per vertex
         vertexNormals,

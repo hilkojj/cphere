@@ -68,3 +68,9 @@ float Island::distToHeight(int x, int y, float minHeight, float maxHeight, int m
     }
     return dist;
 }
+
+bool Island::containsLonLatPoint(float lon, float lat)
+{
+    for (auto &outline : outlinesLongLat) if (outline.contains(lon, lat)) return true;
+    return false;
+}
