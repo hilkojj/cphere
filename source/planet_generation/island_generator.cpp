@@ -2,8 +2,11 @@
 #include "island_outliner.h"
 #include "utils/math_utils.h"
 #include "../level/planet.h"
+#include "glm/gtx/rotate_vector.hpp"
 #include "graphics/3d/model_instance.h"
 #include "graphics/3d/tangent_calculator.h"
+
+static const float ISLAND_ROTATION = 30;
 
 IslandGenerator::IslandGenerator(int width, int height, Planet *plt, TerrainGenerator terrainGenerator, TextureMapper textureMapper)
     : terrainGenerator(terrainGenerator), textureMapper(textureMapper)
@@ -44,19 +47,28 @@ bool IslandGenerator::tryToGenerate()
     calculateNormals();
     textureMapper(isl);
     createModel();
+    isl->model->parts[0].mesh->mode = GL_LINES;
     return true;
 }
 
 void IslandGenerator::initVertexPositions()
 {
     for (int i = 0; i < isl->nrOfVerts; i++)
-        isl->vertexPositionsOriginal[i] = glm::vec3(isl->vertIToX(i), 0, isl->vertIToY(i));
+        isl->vertexPositionsOriginal[i] = glm::rotate(
+            glm::vec3(
+                isl->vertIToX(i) - isl->width / 2,
+                0,
+                isl->vertIToY(i) - isl->width / 2
+            ),
+            ISLAND_ROTATION * mu::DEGREES_TO_RAD,
+            mu::Y
+        );
 }
 
 void IslandGenerator::planetDeform()
 {
     float radius = isl->planet->sphere.radius;
-    glm::vec3 planetOrigin = glm::vec3(isl->width / 2.0f, -radius, isl->height / 2.0f);
+    glm::vec3 planetOrigin = glm::vec3(0, -radius, 0);
 
     // STEP 1: replace vertex positions
     for (int i = 0; i < isl->nrOfVerts; i++)
@@ -135,13 +147,11 @@ void IslandGenerator::createModel()
             &pos = isl->vertexPositions[i],
             &nor = isl->vertexNormals[i];
         
-        mesh->vertices[meshI + posOffset] = pos.x - isl->width / 2.0f;
+        mesh->vertices[meshI + posOffset] = pos.x; //- isl->width / 2.0f;
         mesh->vertices[meshI + posOffset + 1] = pos.y;
-        mesh->vertices[meshI + posOffset + 2] = pos.z - isl->height / 2.0f;
+        mesh->vertices[meshI + posOffset + 2] = pos.z; //- isl->height / 2.0f;
 
-        mesh->vertices[meshI + norOffset] = nor.x;
-        mesh->vertices[meshI + norOffset + 1] = nor.y;
-        mesh->vertices[meshI + norOffset + 2] = nor.z;
+        mesh->setVec3(nor, i, norOffset);
 
         mesh->vertices[meshI + uvOffset] = isl->vertIToX(i) / 50.0f;
         mesh->vertices[meshI + uvOffset + 1] = isl->vertIToY(i) / 50.0f;

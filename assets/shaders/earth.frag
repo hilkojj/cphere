@@ -96,14 +96,12 @@ void main()
         float waveFactor = clamp(max(0, normal.x + normal.y) * 10 + .5);
 
         float foam = clamp((waveHeight - .8) / .2) 
-                * pow(waveHeight, 3) 
-                    * pow(waveHeight, 3) 
-                * pow(waveHeight, 3) 
+                * pow(waveHeight, 9) 
                 * sample(foamTexture, vec2(
 
                     v_texCoords.x * 100, v_texCoords.y * 20
 
-            ) + waveNormal.xy * .1, y, 30).r * waveFactor;
+                ) + waveNormal.xy * .1, y, 30).r * waveFactor;
 
         color.rgb += foam;
         

@@ -61,7 +61,7 @@ bool PlanetGenerator::placeOnPlanet(Island *isl, float minLat, float maxLat)
         float lon = mu::random(360), lat = mu::random(minLat, maxLat);
 
         if (tryToPlaceOnPlanet(isl, lon, lat)) return true;
-        if (++failedTries >= 20) return false;
+        if (++failedTries >= 50) return false;
     }
 }
 
@@ -98,8 +98,6 @@ void PlanetGenerator::transformOutlines(Island *isl, float lon, float lat)
         for (auto &p : outline)
         {
             glm::vec3 newP = glm::vec3(p);
-            newP.x -= isl->width / 2.0f;
-            newP.z -= isl->height / 2.0f;
             newP.y += plt->sphere.radius;
             transformedOutline.push_back(
                 glm::rotate(
