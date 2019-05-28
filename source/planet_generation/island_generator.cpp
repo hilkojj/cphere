@@ -14,7 +14,7 @@ IslandGenerator::IslandGenerator(int width, int height, Planet *plt, TerrainGene
     reset(width, height, plt);
 }
 
-Island *IslandGenerator::generate()
+Island *IslandGenerator::generateEssentials()
 {
     if (generated)
     {
@@ -24,6 +24,13 @@ Island *IslandGenerator::generate()
     while (!tryToGenerate()) reset(isl->width, isl->height, isl->planet);
     generated = true;
     return isl;
+}
+
+void IslandGenerator::finishGeneration()
+{
+    calculateNormals();
+    textureMapper(isl);
+    createMesh();
 }
 
 void IslandGenerator::reset(int width, int height, Planet *plt)
@@ -44,18 +51,14 @@ bool IslandGenerator::tryToGenerate()
     if (!outliner.checkOutlines(isl->outlines2d)) return false;
 
     planetDeform();
-    calculateNormals();
-    textureMapper(isl);
-    createModel();
-    isl->model->parts[0].mesh->mode = GL_LINES;
     return true;
 }
 
 void IslandGenerator::initVertexPositions()
 {
     for (int i = 0; i < isl->nrOfVerts; i++)
-        isl->vertexPositionsOriginal[i] = glm::rotate(
-            glm::vec3(
+        isl->vertexPositionsOriginal[i] = rotate(
+            vec3(
                 isl->vertIToX(i) - isl->width / 2,
                 0,
                 isl->vertIToY(i) - isl->width / 2
@@ -68,26 +71,26 @@ void IslandGenerator::initVertexPositions()
 void IslandGenerator::planetDeform()
 {
     float radius = isl->planet->sphere.radius;
-    glm::vec3 planetOrigin = glm::vec3(0, -radius, 0);
+    vec3 planetOrigin = vec3(0, -radius, 0);
 
     // STEP 1: replace vertex positions
     for (int i = 0; i < isl->nrOfVerts; i++)
     {
-        glm::vec3 &original = isl->vertexPositionsOriginal[i];
-        glm::vec3 &deformed = isl->vertexPositions[i] = glm::normalize(original - planetOrigin);
+        vec3 &original = isl->vertexPositionsOriginal[i];
+        vec3 &deformed = isl->vertexPositions[i] = normalize(original - planetOrigin);
         deformed *= radius + original.y;
         deformed += planetOrigin;
     }
     // STEP 2: create outlines in 3d.
     for (Polygon &outline : isl->outlines2d)
     {
-        isl->outlines3d.push_back(std::vector<glm::vec3>());
+        isl->outlines3d.push_back(std::vector<vec3>());
         auto &outline3d = isl->outlines3d.back();
         outline3d.reserve(outline.points.size());
         int i = 0;
-        for (glm::vec2 &p2D : outline.points)
+        for (vec2 &p2D : outline.points)
         {
-            glm::vec3 p3D = glm::normalize(glm::vec3(p2D.x, 0, p2D.y) - planetOrigin);
+            vec3 p3D = normalize(vec3(p2D.x, 0, p2D.y) - planetOrigin);
             p3D *= radius;
             p3D += planetOrigin;
             outline3d.push_back(p3D);
@@ -105,8 +108,8 @@ void IslandGenerator::calculateNormals()
     for (int vertI = 0; vertI < isl->nrOfVerts; vertI++)
     {
         int x = isl->vertIToX(vertI), y = isl->vertIToY(vertI);
-        glm::vec3 normal = glm::vec3();
-        glm::vec3 &p0 = isl->vertexPositions[vertI];
+        vec3 normal = vec3();
+        vec3 &p0 = isl->vertexPositions[vertI];
         for (int i = 0; i < 4; i++)
         {
             int x1 = x + lol1[i];
@@ -117,17 +120,18 @@ void IslandGenerator::calculateNormals()
             if (x1 < 0 || y1 < 0 || x2 < 0 || y2 < 0 || x1 > isl->width || x2 > isl->width || y1 > isl->height || y2 > isl->height)
                 continue;
 
-            glm::vec3 
+            vec3 
                 &p1 = isl->vertexPositions[isl->xyToVertI(x1, y1)],
                 &p2 = isl->vertexPositions[isl->xyToVertI(x2, y2)];
 
             normal += mu::calculateNormal(p0, p1, p2);
         }
-        isl->vertexNormals[vertI] = glm::normalize(normal);
+        isl->vertexNormals[vertI] = normalize(normal);
+        isl->vertexNormalsPlanet[vertI] = isl->planetTransform * vec4(isl->vertexNormals[vertI], 0);
     }
 }
 
-void IslandGenerator::createModel()
+void IslandGenerator::createMesh()
 {
     std::string name = isl->planet->name + "_island_" + std::to_string(isl->planet->islands.size());
     VertAttributes attrs = VertAttributes();
@@ -142,26 +146,14 @@ void IslandGenerator::createModel()
 
     for (int i = 0; i < isl->nrOfVerts; i++)
     {
-        int meshI = i * attrs.getVertSize();
-        glm::vec3 
-            &pos = isl->vertexPositions[i],
-            &nor = isl->vertexNormals[i];
-        
-        mesh->vertices[meshI + posOffset] = pos.x; //- isl->width / 2.0f;
-        mesh->vertices[meshI + posOffset + 1] = pos.y;
-        mesh->vertices[meshI + posOffset + 2] = pos.z; //- isl->height / 2.0f;
+        mesh->setVec3(isl->vertexPositionsPlanet[i], i, posOffset);     // position
+        mesh->setVec3(isl->vertexNormalsPlanet[i], i, norOffset);       // normal
 
-        mesh->setVec3(nor, i, norOffset);
+        mesh->setVec2(
+            vec2(isl->vertIToX(i), isl->vertIToY(i)) / vec2(50), i, uvOffset    // texCoords
+        );
 
-        mesh->vertices[meshI + uvOffset] = isl->vertIToX(i) / 50.0f;
-        mesh->vertices[meshI + uvOffset + 1] = isl->vertIToY(i) / 50.0f;
-
-        glm::vec4 &blend = isl->textureMap[i];
-
-        mesh->vertices[meshI + texOffset] = blend.r;
-        mesh->vertices[meshI + texOffset + 1] = blend.g;
-        mesh->vertices[meshI + texOffset + 2] = blend.b;
-        mesh->vertices[meshI + texOffset + 3] = blend.a;
+        mesh->setVec4(isl->textureMap[i], i, texOffset);    // texture blending
     }
 
     int i = 0;
@@ -185,8 +177,6 @@ void IslandGenerator::createModel()
         }
     }
     mesh->nrOfIndices = mesh->indices.size();
-    TangentCalculator::addTangentsToMesh(mesh.get());
-    isl->model = SharedModel(new Model(name));
-    isl->model->parts.push_back({mesh});
-    isl->modelInstance = new ModelInstance(isl->model);
+    TangentCalculator::addTangentsToMesh(mesh);
+    isl->terrainMesh = mesh;
 }

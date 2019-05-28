@@ -46,7 +46,9 @@ class PlanetGenerator
 
     bool tryToPlaceOnPlanet(Island *isl, float lon, float lat);
 
-    void transformOutlines(Island *isl, float lon, float lat);
+    void transformOutlines(Island *isl);
+
+    void transformVertices(Island *isl);
 
     void calculateLatLonOutlines(Island* isl);
 

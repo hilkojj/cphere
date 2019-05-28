@@ -26,7 +26,7 @@ class LevelScreen : public Screen
   public:
     Planet earth;
     PerspectiveCamera cam;
-    ShaderProgram shaderProgram, earthShader, causticsShader, terrainShader, atmosphereShader, testShader;
+    ShaderProgram earthShader, causticsShader, terrainShader, atmosphereShader;
     FlyingCameraController camController;
     DebugLineRenderer lineRenderer;
     SharedTexture seaNormalMap, seaDUDV, caustics, sand, foamTexture;
@@ -56,9 +56,7 @@ class LevelScreen : public Screen
               "assets/textures/tc_grass_dead.dds",
           })),
 
-          shaderProgram(ShaderProgram::fromFiles("NormalTestShader", "gu/assets/shaders/test.vert", "gu/assets/shaders/normaltest.frag")),
           earthShader(ShaderProgram::fromFiles("EarthShader", "assets/shaders/earth.vert", "assets/shaders/earth.frag")),
-          testShader(ShaderProgram::fromFiles("TestShader", "assets/shaders/earth.vert", "assets/shaders/test.frag")),
           atmosphereShader(ShaderProgram::fromFiles("EarthAtmosphereShader", "assets/shaders/earth_atmosphere.vert", "assets/shaders/earth_atmosphere.frag")),
           causticsShader(ShaderProgram::fromFiles("CausticsShader", "assets/shaders/terrain_caustics.vert", "assets/shaders/terrain_caustics.frag")),
           terrainShader(ShaderProgram::fromFiles("TerrainShader", "assets/shaders/terrain.vert", "assets/shaders/terrain.frag")),
@@ -142,10 +140,7 @@ class LevelScreen : public Screen
         for (auto isl : earth.islands)
         {
             glUniformMatrix4fv(glGetUniformLocation(causticsShader.id(), "viewTrans"), 1, GL_FALSE, &cam.combined[0][0]);
-            glUniformMatrix4fv(glGetUniformLocation(causticsShader.id(), "worldTrans"), 1, GL_FALSE, &isl->modelInstance->transform[0][0]);
-
-            SharedMesh &mesh = isl->model->parts[0].mesh;
-            mesh->render();
+            isl->terrainMesh->render();
         }
 
         // render waves to alpha channel of underwaterBuffer
@@ -169,10 +164,7 @@ class LevelScreen : public Screen
             if (isl == hoveredIsland) continue;
 
             glUniformMatrix4fv(terrainShader.location("viewTrans"), 1, GL_FALSE, &cam.combined[0][0]);
-            glUniformMatrix4fv(terrainShader.location("worldTrans"), 1, GL_FALSE, &isl->modelInstance->transform[0][0]);
-
-            SharedMesh &mesh = isl->model->parts[0].mesh;
-            mesh->render();
+            isl->terrainMesh->render();
         }
         // DONE RENDERING ISLANDS
 

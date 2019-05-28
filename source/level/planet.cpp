@@ -27,9 +27,12 @@ glm::vec3 Planet::lonLatTo3d(float lon, float lat, float altitude) const
     return glm::rotate(out, -lon * mu::DEGREES_TO_RAD, mu::Y);
 }
 
+// must be called to delete islands.
+// NOTE!!!!: is also called when planet generation restarts
 void Planet::destroyIslands()
 {
     for (Island *isl : islands) delete isl;
+    islands.clear();
 }
 
 bool Planet::cursorToLonLat(const Camera &cam, vec2 &lonLat) const

@@ -7,23 +7,19 @@ Island::Island(int width, int height, Planet *plt)
     : width(width), height(height), planet(plt),
 
       nrOfVerts((width + 1) * (height + 1)),
-      vertexPositions(nrOfVerts, glm::vec3()),
-      vertexNormals(nrOfVerts, glm::vec3()),
-      vertexPositionsOriginal(nrOfVerts, glm::vec3()),
-      textureMap(nrOfVerts, glm::vec4())
+      vertexPositions(nrOfVerts, vec3()),
+      vertexNormals(nrOfVerts, vec3()),
+      vertexNormalsPlanet(nrOfVerts, vec3()),
+      vertexPositionsPlanet(nrOfVerts, vec3()),
+      vertexPositionsOriginal(nrOfVerts, vec3()),
+      textureMap(nrOfVerts, vec4())
 {
     std::cout << "Creating island\n";
 }
 
 Island::~Island()
 {
-    if (modelInstance)
-    {
-        delete modelInstance;
-        std::cout << "Destroying island + modelInstance\n";
-    }
-    else
-        std::cout << "Destroying island\n";
+    std::cout << "Destroying island\n";
 }
 
 int Island::xyToVertI(int x, int y)
@@ -72,5 +68,19 @@ float Island::distToHeight(int x, int y, float minHeight, float maxHeight, int m
 bool Island::containsLonLatPoint(float lon, float lat)
 {
     for (auto &outline : outlinesLongLat) if (outline.contains(lon, lat)) return true;
+    return false;
+}
+
+bool Island::tileUnderCursor(glm::ivec2 &out, const Camera &cam)
+{
+    for (int x = 0; x < width; x++)
+    {
+        for (int y = 0; y < height; y++)
+        {
+
+            // vec3 &
+
+        }
+    }
     return false;
 }

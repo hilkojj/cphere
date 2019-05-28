@@ -5,8 +5,8 @@
 #include <memory>
 
 #include "utils/math/polygon.h"
-#include "graphics/3d/model.h"
-#include "graphics/3d/model_instance.h"
+#include "graphics/3d/mesh.h"
+#include "graphics/camera.h"
 
 class Planet;
 
@@ -17,10 +17,10 @@ class Island
     Planet *planet;
     int width, height, nrOfVerts;
     float longitude, latitude;
+    mat4 planetTransform;
     bool isInView = true;
 
-    SharedModel model;
-    ModelInstance *modelInstance = nullptr;
+    SharedMesh terrainMesh;
 
     Island(int width, int height, Planet *plt);
 
@@ -41,14 +41,22 @@ class Island
 
     bool containsLonLatPoint(float lon, float lat);
 
-    std::vector<glm::vec3>
-        // normal per vertex
+    bool tileUnderCursor(ivec2 &out, const Camera &cam);
+
+    std::vector<vec3>
+        // normal per vertex in local space
         vertexNormals,
 
-        // vertex positions in 3d, including curvature of the planet.
+        // normal per vertex
+        vertexNormalsPlanet,
+
+        // vertex positions in local space, including curvature of the planet.
         vertexPositions,
 
-        // vertex positions in 3d, excluding curvature.
+        // vertex positions in 'planet'/world space.
+        vertexPositionsPlanet,
+
+        // vertex positions in local space, EXCLUDING curvature.
         vertexPositionsOriginal;
 
     std::vector<Polygon>
@@ -58,7 +66,7 @@ class Island
         // outlines in 2d. (As if the planet was flat)
         outlines2d;
 
-    std::vector<std::vector<glm::vec3>>
+    std::vector<std::vector<vec3>>
         // outlines in 3d.
         outlines3d,
         // outlines in 3d transformed.
@@ -73,7 +81,7 @@ class Island
      * 
      * The n-th float of that vec4 tells how much of n-th texture should be rendered at the position of that vertex.
      */
-    std::vector<glm::vec4> textureMap;
+    std::vector<vec4> textureMap;
 };
 
 #endif

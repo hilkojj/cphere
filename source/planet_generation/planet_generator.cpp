@@ -21,11 +21,14 @@ void PlanetGenerator::generate()
 
     while (!tryToGenerate())
     {
+        std::cout << "Planet generation failed\n";
         if (++failedTries > 10)
         {
+            std::cout << "nr of Islands is too high\n";
             minNrOfIslands--;
             failedTries = 0;
         }
+        plt->destroyIslands();
     }
     plt->mesh = meshGenerator();
     uploadMeshes();
@@ -41,9 +44,13 @@ bool PlanetGenerator::tryToGenerate()
     while (plt->islands.size() < nrOfIslands && failedTries < maxTries)
     {
         auto context = islContextProvider();
-        Island *isl = context.islandGenerator.generate();
+        Island *isl = context.islandGenerator.generateEssentials();
 
-        if (placeOnPlanet(isl, context.minLatitude, context.maxLatitude)) failedTries = 0;
+        if (placeOnPlanet(isl, context.minLatitude, context.maxLatitude))
+        {
+            failedTries = 0;
+            context.islandGenerator.finishGeneration();
+        }
         else 
         {
             failedTries++;
@@ -69,7 +76,12 @@ bool PlanetGenerator::tryToPlaceOnPlanet(Island *isl, float lon, float lat)
 {
     isl->longitude = lon;
     isl->latitude = lat;
-    transformOutlines(isl, lon, lat);
+    mat4 transform(1);
+    transform = rotate(transform, isl->longitude * mu::DEGREES_TO_RAD, mu::Y);
+    transform = rotate(transform, isl->latitude * mu::DEGREES_TO_RAD, mu::X);
+    transform = translate(transform, vec3(0, 150, 0));
+    isl->planetTransform = transform;
+    transformOutlines(isl);
     calculateLatLonOutlines(isl);
 
     if (overflowsLongitude(isl)) return false;
@@ -77,36 +89,28 @@ bool PlanetGenerator::tryToPlaceOnPlanet(Island *isl, float lon, float lat)
     for (Island *isl1 : plt->islands)
         if (overlaps(isl, isl1)) return false;
 
-    isl->modelInstance->rotateY(lon);
-    isl->modelInstance->rotateX(lat);
-    isl->modelInstance->translate(0, plt->sphere.radius, 0);
-
+    transformVertices(isl);
     plt->islands.push_back(isl);
     return true;
 }
 
-void PlanetGenerator::transformOutlines(Island *isl, float lon, float lat)
+void PlanetGenerator::transformOutlines(Island *isl)
 {
     auto &transformed = isl->outlines3dTransformed;
     transformed.clear();
 
     for (auto &outline : isl->outlines3d)
     {
-        transformed.push_back(std::vector<glm::vec3>());
-        auto &transformedOutline = transformed.back();
+        transformed.push_back(std::vector<vec3>());
 
-        for (auto &p : outline)
-        {
-            glm::vec3 newP = glm::vec3(p);
-            newP.y += plt->sphere.radius;
-            transformedOutline.push_back(
-                glm::rotate(
-                    glm::rotate(newP, lat * mu::DEGREES_TO_RAD, mu::X),
-                    lon * mu::DEGREES_TO_RAD, mu::Y
-                )
-            );
-        }
+        for (auto &p : outline) transformed.back().push_back(isl->planetTransform * vec4(p, 1));
     }
+}
+
+void PlanetGenerator::transformVertices(Island *isl)
+{
+    for (int i = 0; i < isl->nrOfVerts; i++)
+        isl->vertexPositionsPlanet[i] = isl->planetTransform * vec4(isl->vertexPositions[i], 1);
 }
 
 void PlanetGenerator::calculateLatLonOutlines(Island *isl)
@@ -120,7 +124,7 @@ void PlanetGenerator::calculateLatLonOutlines(Island *isl)
         auto &lonLatoutline = lonLatOutlines.back();
 
         for (auto &p : outline)
-            lonLatoutline.points.push_back(glm::vec2(
+            lonLatoutline.points.push_back(vec2(
                 plt->longitude(p.x, p.z),
                 plt->latitude(p.y)
             ));
@@ -137,9 +141,9 @@ bool PlanetGenerator::overflowsLongitude(Island *isl)
         {
             float 
                 lon = outline.points[i].x,
-                dist = glm::abs(prevLon - lon),
-                minLon = glm::min(lon, prevLon), maxLon = glm::max(lon, prevLon),
-                distWithOverflow = glm::min(dist, minLon + 360 - maxLon);
+                dist = abs(prevLon - lon),
+                minLon = min(lon, prevLon), maxLon = max(lon, prevLon),
+                distWithOverflow = min(dist, minLon + 360 - maxLon);
 
             if (distWithOverflow != dist)
                 return true;
@@ -171,12 +175,9 @@ void PlanetGenerator::uploadMeshes()
     VertBuffer *buffer = NULL;
     for (auto isl : plt->islands)
     {
-        SharedMesh &mesh = isl->model->parts[0].mesh;
-        if (!buffer) buffer = VertBuffer::with(mesh->attributes);
-        buffer->add(mesh);
+        if (!buffer) buffer = VertBuffer::with(isl->terrainMesh->attributes);
+        buffer->add(isl->terrainMesh);
     }
-    buffer->upload(false);
-
-    buffer = VertBuffer::with(plt->mesh->attributes);
-    buffer->add(plt->mesh)->upload(false);
+    if (buffer) buffer->upload(false);
+    VertBuffer::uploadSingleMesh(plt->mesh);
 }

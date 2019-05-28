@@ -13,7 +13,9 @@ class IslandGenerator
   public:
     IslandGenerator(int width, int height, Planet *plt, TerrainGenerator terrainGenerator, TextureMapper textureMapper);
 
-    Island *generate();
+    Island *generateEssentials();
+
+    void finishGeneration();
 
   private:
     Island *isl = nullptr;
@@ -32,7 +34,7 @@ class IslandGenerator
 
     void calculateNormals();
 
-    void createModel();
+    void createMesh();
 
 };
 

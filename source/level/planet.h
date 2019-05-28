@@ -33,7 +33,7 @@ class Planet
 
     Island *islUnderCursor(const Camera &cam);
 
-    // must be called to delete islands.
+    // must be called to delete islands. NOTE: is also called when planet generation restarts
     void destroyIslands();
 
   private:
