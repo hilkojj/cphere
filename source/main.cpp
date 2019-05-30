@@ -2,6 +2,7 @@
 #include <iostream>
 #include "gu/game_utils.h"
 #include "level_screen.cpp"
+#include "utils/math_utils.h"
 
 int main()
 {

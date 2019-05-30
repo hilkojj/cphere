@@ -43,6 +43,8 @@ class Island
 
     bool tileUnderCursor(ivec2 &out, const Camera &cam);
 
+    bool containsTile(int x, int y) const;
+
     std::vector<vec3>
         // normal per vertex in local space
         vertexNormals,
@@ -82,6 +84,9 @@ class Island
      * The n-th float of that vec4 tells how much of n-th texture should be rendered at the position of that vertex.
      */
     std::vector<vec4> textureMap;
+
+  private:
+    ivec2 prevTileUnderCursor = ivec2(0); // used by tileUnderCursor() as optimization
 };
 
 #endif

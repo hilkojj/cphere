@@ -103,6 +103,7 @@ class LevelScreen : public Screen
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         Island *hoveredIsland = NULL;
+        ivec2 hoveredTile(0);
 
         if (KeyInput::justPressed(GLFW_KEY_G))
         {
@@ -117,6 +118,7 @@ class LevelScreen : public Screen
         else
         {
             hoveredIsland = earth.islUnderCursor(cam);
+            if (hoveredIsland) hoveredIsland->tileUnderCursor(hoveredTile, cam);
         }
 
         glm::vec3 sunDir = glm::vec3(glm::sin(time * .03), 0, glm::cos(time * .03));
@@ -161,10 +163,10 @@ class LevelScreen : public Screen
 
         for (auto isl : earth.islands)
         {
-            if (isl == hoveredIsland) continue;
-
             glUniformMatrix4fv(terrainShader.location("viewTrans"), 1, GL_FALSE, &cam.combined[0][0]);
+            isl->terrainMesh->mode = isl == hoveredIsland ? GL_LINES : GL_TRIANGLES;
             isl->terrainMesh->render();
+            isl->terrainMesh->mode = GL_TRIANGLES;
         }
         // DONE RENDERING ISLANDS
 
@@ -223,6 +225,32 @@ class LevelScreen : public Screen
 
         for (int i = 0; i < 100; i += 2)
             lineRenderer.line(sunDir * glm::vec3(i * 5), sunDir * glm::vec3((i + 1) * 5), glm::vec3(1, 1, 0));
+
+        if (hoveredIsland)
+        {
+            lineRenderer.line(
+                hoveredIsland->vertexPositionsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y)],
+                hoveredIsland->vertexPositionsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y)] + hoveredIsland->vertexNormalsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y)] * vec3(10),
+                mu::X
+            );
+            lineRenderer.line(
+                hoveredIsland->vertexPositionsPlanet[hoveredIsland->xyToVertI(hoveredTile.x + 1, hoveredTile.y)],
+                hoveredIsland->vertexPositionsPlanet[hoveredIsland->xyToVertI(hoveredTile.x + 1, hoveredTile.y)] + hoveredIsland->vertexNormalsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y)] * vec3(10),
+                mu::X
+            );
+
+            lineRenderer.line(
+                hoveredIsland->vertexPositionsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y + 1)],
+                hoveredIsland->vertexPositionsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y + 1)] + hoveredIsland->vertexNormalsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y)] * vec3(10),
+                mu::X
+            );
+
+            lineRenderer.line(
+                hoveredIsland->vertexPositionsPlanet[hoveredIsland->xyToVertI(hoveredTile.x + 1, hoveredTile.y + 1)],
+                hoveredIsland->vertexPositionsPlanet[hoveredIsland->xyToVertI(hoveredTile.x + 1, hoveredTile.y + 1)] + hoveredIsland->vertexNormalsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y)] * vec3(10),
+                mu::X
+            );
+        }
     }
 
     void onResize()
