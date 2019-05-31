@@ -5,6 +5,7 @@
 #include "graphics/texture_array.h"
 #include "level/planet.h"
 #include "level/wave_renderer.h"
+#include "level/space_renderer.h"
 #include "input/key_input.h"
 #include "input/mouse_input.h"
 #include "planet_generation/earth_generator.h"
@@ -35,6 +36,7 @@ class LevelScreen : public Screen
 
     FrameBuffer underwaterBuffer;
     WaveRenderer *waveRenderer;
+    SpaceRenderer spaceRenderer;
 
     float time = 0;
 
@@ -99,7 +101,6 @@ class LevelScreen : public Screen
             waveRenderer = new WaveRenderer(earth);
         }
 
-        glClearColor(.01, .03, .1, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         Island *hoveredIsland = NULL;
@@ -193,9 +194,12 @@ class LevelScreen : public Screen
         earth.mesh->render();
         // DONE RENDERING WATER
 
+        spaceRenderer.render(newDeltaTime, cam);
+
         // RENDER ATMOSPHERE:
         atmosphereShader.use();
         glDepthMask(false);
+        glEnable(GL_BLEND);
 
         mvp = glm::mat4(1.0f);
         glm::vec3 cP = glm::normalize(cam.position) * earth.sphere.radius;
