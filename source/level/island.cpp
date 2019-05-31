@@ -83,12 +83,12 @@ bool Island::tileUnderCursor(glm::ivec2 &out, const Camera &cam)
 
     mu::spiral(max(width, height) * 2, [&](ivec2 d) {
 
-        int x = prevTileUnderCursor.x + d.x, 
+        int x = prevTileUnderCursor.x + d.x,
             y = prevTileUnderCursor.y + d.y;
 
         if (!containsTile(x, y)) return true;
 
-        vec3 
+        vec3
             &p0 = vertexPositionsPlanet[xyToVertI(x, y)],
             &p1 = vertexPositionsPlanet[xyToVertI(x + 1, y)],
             &p2 = vertexPositionsPlanet[xyToVertI(x, y + 1)],

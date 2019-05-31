@@ -4,3 +4,6 @@
 [submodule "FastNoise"]
 	path = FastNoise
 	url = git@github.com:Auburns/FastNoise.git
+[submodule "entt"]
+	path = entt
+	url = git@github.com:skypjack/entt.git
