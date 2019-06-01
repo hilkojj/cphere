@@ -67,7 +67,7 @@ void main()
     vec2 totalDistortion = (sample(seaDUDV, distortedTexCoords, y, 20).rg * 2.0 - 1.0) * .02;
 
     // get normal vector:
-    vec3 normal = sample(seaNormals, totalDistortion, y, 30).xyz;
+    vec3 normal = sample(seaNormals, totalDistortion + vec2(-time * .005, time * .006), y, 30).xyz;
     normal *= 2;
     normal -= 1;
     float normalStrength = max(.1, ((100. - distToSea) / 100.) * .6);
@@ -113,26 +113,12 @@ void main()
     // fresnel with normal map:
     vec3 viewVector =  normalize(v_camPosTanSpace - normal);
     float fr =  1.0 - dot(normal, viewVector);
-    float reduceEdgeFresnel = clamp((distToSea - 90) / 100) * .55;
+    float reduceEdgeFresnel = clamp((distToSea - 90) / 100) * .6;
     color.rgb += clamp(fr * 1.8 - v_edge * reduceEdgeFresnel);
 
     // diffuse light:
     float lambertTerm = dot(normal, v_sunDirTanSpace);
     color.rgb *= lambertTerm * .3 + .7;
-
-    // specular light 1:
-    vec3 reflectDir = reflect(sunDir, strongNormal * v_fromTanSpace);
-    float specular = dot(reflectDir, normalize(v_toCamera));
-    specular = clamp(specular);
-    float dampedSpec = pow(specular, 100);
-    color.rgb += dampedSpec * .1 * vec3(.8, .8, .6);
-
-    // specular light 2:
-    reflectDir = reflect(sunDir, normal * v_fromTanSpace);
-    specular = dot(reflectDir, normalize(v_toCamera));
-    specular = clamp(specular);
-    dampedSpec = pow(specular, 600);
-    color.rgb += dampedSpec * .4 * vec3(1, .9, .6);
 
     vec2 dudv = normal.xy * .1;
     vec2 distortedScreenCoords = screenCoords + dudv;
@@ -142,7 +128,7 @@ void main()
     color.a = seaDepth * 4;
 
     // underwater:
-    float distortion = min(1, seaDepth * .5);
+    float distortion = min(1, seaDepth);
     vec3 underWaterColor = texture2D(underwaterTexture, distortedScreenCoords * distortion + screenCoords * (1 - distortion)).rgb;
     if (all(greaterThan(underWaterColor, vec3(.01))))
     {
@@ -159,4 +145,18 @@ void main()
         color.rgb *= 1 - underwaterFactor;
         color.rgb += underwaterFactor * underWaterColor;
     }
+
+    // specular light 1:
+    vec3 reflectDir = reflect(sunDir, strongNormal * v_fromTanSpace);
+    float specular = dot(reflectDir, normalize(v_toCamera));
+    specular = clamp(specular);
+    float dampedSpec = pow(specular, 100);
+    color.rgb += dampedSpec * .1 * vec3(.8, .8, .6);
+
+    // specular light 2:
+    reflectDir = reflect(sunDir, (normal + strongNormal) * .5 * v_fromTanSpace);
+    specular = dot(reflectDir, normalize(v_toCamera));
+    specular = clamp(specular);
+    dampedSpec = pow(specular, 600);
+    color.rgb += dampedSpec * .5 * vec3(1, .9, .6);
 }

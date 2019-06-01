@@ -27,14 +27,14 @@ class LevelScreen : public Screen
   public:
     Planet earth;
     PerspectiveCamera cam;
-    ShaderProgram earthShader, causticsShader, terrainShader, atmosphereShader;
+    ShaderProgram earthShader, causticsShader, terrainShader, atmosphereShader, postProcessingShader;
     FlyingCameraController camController;
     DebugLineRenderer lineRenderer;
     SharedTexture seaNormalMap, seaDUDV, caustics, sand, foamTexture;
     SharedTexArray terrainTextures;
     SharedMesh atmosphereMesh;
 
-    FrameBuffer underwaterBuffer;
+    FrameBuffer underwaterBuffer, *sceneBuffer = NULL;
     WaveRenderer *waveRenderer;
     SpaceRenderer spaceRenderer;
 
@@ -62,6 +62,7 @@ class LevelScreen : public Screen
           atmosphereShader(ShaderProgram::fromFiles("EarthAtmosphereShader", "assets/shaders/earth_atmosphere.vert", "assets/shaders/earth_atmosphere.frag")),
           causticsShader(ShaderProgram::fromFiles("CausticsShader", "assets/shaders/terrain_caustics.vert", "assets/shaders/terrain_caustics.frag")),
           terrainShader(ShaderProgram::fromFiles("TerrainShader", "assets/shaders/terrain.vert", "assets/shaders/terrain.frag")),
+          postProcessingShader(ShaderProgram::fromFiles("PostProcessingShader", "assets/shaders/post_processing.vert", "assets/shaders/post_processing.frag")),
 
           atmosphereMesh(SphereMeshGenerator::generate("earth_atmosphere", ATMOSPHERE_RADIUS, 60, 70, VertAttributes().add_(VertAttributes::POSITION).add_(VertAttributes::NORMAL))),
 
@@ -152,6 +153,8 @@ class LevelScreen : public Screen
         underwaterBuffer.unbindCurrent();
         // DONE RENDERING UNDERWATER
 
+        sceneBuffer->bind();
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         // RENDER ISLANDS:
         terrainShader.use();
         terrainTextures->bind(0);
@@ -255,12 +258,26 @@ class LevelScreen : public Screen
                 mu::X
             );
         }
+
+        sceneBuffer->unbindCurrent();
+        glEnable(GL_BLEND);
+
+        postProcessingShader.use();
+        sceneBuffer->colorTexture->bind(0);
+        glUniform1i(postProcessingShader.location("scene"), 0);
+        glDisable(GL_DEPTH_TEST);
+        Mesh::getQuad()->render();
+        glEnable(GL_DEPTH_TEST);
     }
 
     void onResize()
     {
         cam.viewportWidth = gu::widthPixels;
         cam.viewportHeight = gu::heightPixels;
+        if (sceneBuffer) delete sceneBuffer;
+        sceneBuffer = new FrameBuffer(gu::widthPixels, gu::heightPixels);
+        sceneBuffer->addColorTexture(GL_RGB, GL_LINEAR, GL_LINEAR);
+        sceneBuffer->addDepthTexture(GL_LINEAR, GL_LINEAR);
     }
 
     ~LevelScreen()

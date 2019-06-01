@@ -10,12 +10,15 @@ uniform sampler2D causticsSheet;
 uniform sampler2D terrainTexture;
 uniform float time;
 
+const float near = .1, far = 1000;
+
 void main() {
 
     color = texture2D(terrainTexture, v_texCoord);
 
     // light
     float dayLight = dot(v_normal, sunDir) * .3 + .7;
+    float dist = 2.0 * near * far / (far + near - (2.0 * gl_FragCoord.z - 1.0) * (far - near));
 
     for (float t = time; t < time + .2; t += .02) {
 
@@ -27,7 +30,7 @@ void main() {
         color.rgb += texture2D(
             causticsSheet,
             vec2(mod(v_texCoord.x * .7 + t * .001, 1./6.), mod(v_texCoord.y * .7 + t * .001, 1./6.)) + offset
-        ).rgb * .01 * dayLight;
+        ).rgb * .014 * max(.6, min(1, 1 - (dist - 20) / 90));
     }
     
     color.rgb *= dayLight;
