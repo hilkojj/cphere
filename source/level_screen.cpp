@@ -75,7 +75,7 @@ class LevelScreen : public Screen
 
         generateEarth(&earth);
         waveRenderer = new WaveRenderer(earth);
-        cam.position = glm::vec3(280, 90, 280);
+        cam.position = glm::vec3(-300, 90, -300);
         cam.lookAt(glm::vec3(0));
         cam.update();
         camController.speedMultiplier = 100;
@@ -123,7 +123,7 @@ class LevelScreen : public Screen
             if (hoveredIsland) hoveredIsland->tileUnderCursor(hoveredTile, cam);
         }
 
-        glm::vec3 sunDir = glm::vec3(glm::sin(time * .03), 0, glm::cos(time * .03));
+        glm::vec3 sunDir = glm::vec3(glm::sin(time * .015), 0, glm::cos(time * .015));
 
         // RENDER UNDERWATER:
         underwaterBuffer.bind();
@@ -133,12 +133,10 @@ class LevelScreen : public Screen
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         causticsShader.use();
-        caustics->bind(0);
-        sand->bind(1);
+        caustics->bind(0, causticsShader, "causticsSheet");
+        sand->bind(1, causticsShader, "terrainTexture");
 
         glUniform1f(causticsShader.location("time"), time);
-        glUniform1i(causticsShader.location("causticsSheet"), 0);
-        glUniform1i(causticsShader.location("terrainTexture"), 1);
         glUniform3f(causticsShader.location("sunDir"), sunDir.x, sunDir.y, sunDir.z);
 
         for (auto isl : earth.islands)
@@ -177,19 +175,14 @@ class LevelScreen : public Screen
         // RENDER WATER:
         earthShader.use();
         glEnable(GL_BLEND);
-        seaNormalMap->bind(0);
-        seaDUDV->bind(1);
-        underwaterBuffer.colorTexture->bind(2);
-        underwaterBuffer.depthTexture->bind(3);
-        foamTexture->bind(4);
+        seaNormalMap->bind(0, earthShader, "seaNormals");
+        seaDUDV->bind(1, earthShader, "seaDUDV");
+        underwaterBuffer.colorTexture->bind(2, earthShader, "underwaterTexture");
+        underwaterBuffer.depthTexture->bind(3, earthShader, "underwaterDepthTexture");
+        foamTexture->bind(4, earthShader, "foamTexture");
         glm::mat4 mvp = cam.combined;
     
         glUniformMatrix4fv(glGetUniformLocation(earthShader.id(), "MVP"), 1, GL_FALSE, &mvp[0][0]);
-        glUniform1i(earthShader.location("seaNormals"), 0);
-        glUniform1i(earthShader.location("seaDUDV"), 1);
-        glUniform1i(earthShader.location("underwaterTexture"), 2);
-        glUniform1i(earthShader.location("underwaterDepthTexture"), 3);
-        glUniform1i(earthShader.location("foamTexture"), 4);
         glUniform1f(earthShader.location("time"), time);
         glUniform2f(earthShader.location("scrSize"), gu::widthPixels, gu::heightPixels);
         glUniform3f(earthShader.location("camPos"), cam.position.x, cam.position.y, cam.position.z);
@@ -197,7 +190,7 @@ class LevelScreen : public Screen
         earth.mesh->render();
         // DONE RENDERING WATER
 
-        spaceRenderer.render(newDeltaTime, cam);
+        spaceRenderer.renderBox(sunDir, cam);
 
         // RENDER ATMOSPHERE:
         atmosphereShader.use();
@@ -226,12 +219,12 @@ class LevelScreen : public Screen
         glDisable(GL_BLEND);
 
         lineRenderer.projection = cam.combined;
-        lineRenderer.line(glm::vec3(-300, 0, 0), glm::vec3(300, 0, 0), mu::X);
-        lineRenderer.line(glm::vec3(0, -300, 0), glm::vec3(0, 300, 0), mu::Y);
-        lineRenderer.line(glm::vec3(0, 0, -300), glm::vec3(0, 0, 300), mu::Z);
+        // lineRenderer.line(glm::vec3(-300, 0, 0), glm::vec3(300, 0, 0), mu::X);
+        // lineRenderer.line(glm::vec3(0, -300, 0), glm::vec3(0, 300, 0), mu::Y);
+        // lineRenderer.line(glm::vec3(0, 0, -300), glm::vec3(0, 0, 300), mu::Z);
 
-        for (int i = 0; i < 100; i += 2)
-            lineRenderer.line(sunDir * glm::vec3(i * 5), sunDir * glm::vec3((i + 1) * 5), glm::vec3(1, 1, 0));
+        // for (int i = 0; i < 100; i += 2)
+        //     lineRenderer.line(sunDir * glm::vec3(i * 5), sunDir * glm::vec3((i + 1) * 5), glm::vec3(1, 1, 0));
 
         if (hoveredIsland)
         {
@@ -263,10 +256,10 @@ class LevelScreen : public Screen
         glEnable(GL_BLEND);
 
         postProcessingShader.use();
-        sceneBuffer->colorTexture->bind(0);
-        glUniform1i(postProcessingShader.location("scene"), 0);
+        sceneBuffer->colorTexture->bind(0, postProcessingShader, "scene");
         glDisable(GL_DEPTH_TEST);
         Mesh::getQuad()->render();
+        spaceRenderer.renderSun(sunDir, cam, sceneBuffer->depthTexture, time);
         glEnable(GL_DEPTH_TEST);
     }
 

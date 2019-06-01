@@ -133,7 +133,7 @@ void WaveRenderer::render(double deltaTime, const glm::mat4 &view)
 
         for (auto &wave : islWaves.waves)
         {
-            if (wave.timer == 0 && mu::random() < .3 * deltaTime)
+            if (wave.timer == 0 && mu::random() < .8 * deltaTime)
             {
                 wave.timer = .0001;
                 wave.timeMultiplier = mu::random(.7, 1);
