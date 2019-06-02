@@ -8,6 +8,7 @@ int main()
 {
     gu::Config config = {};
     config.printOpenGLMessages = false;
+    config.samples = 0;
 
     if (!gu::init(config))
         return -1;

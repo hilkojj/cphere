@@ -87,11 +87,13 @@ class LevelScreen : public Screen
 
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        
+        glEnable(GL_MULTISAMPLE);
     }
 
     void render(double deltaTime)
     {
-        double newDeltaTime =  deltaTime * (KeyInput::pressed(GLFW_KEY_KP_ADD) ? 10 : 1);
+        double newDeltaTime =  deltaTime * (KeyInput::pressed(GLFW_KEY_KP_ADD) ? 15 : (KeyInput::pressed(GLFW_KEY_KP_SUBTRACT) ? 0 : 1));
         time += newDeltaTime;
         if (KeyInput::justPressed(GLFW_KEY_R))
         {
@@ -123,7 +125,7 @@ class LevelScreen : public Screen
             if (hoveredIsland) hoveredIsland->tileUnderCursor(hoveredTile, cam);
         }
 
-        glm::vec3 sunDir = glm::vec3(glm::sin(time * .015), 0, glm::cos(time * .015));
+        glm::vec3 sunDir = glm::vec3(glm::sin(time * .008), 0, glm::cos(time * .008));
 
         // RENDER UNDERWATER:
         underwaterBuffer.bind();
@@ -148,7 +150,7 @@ class LevelScreen : public Screen
         // render waves to alpha channel of underwaterBuffer
         waveRenderer->render(newDeltaTime, cam.combined);
 
-        underwaterBuffer.unbindCurrent();
+        underwaterBuffer.unbind();
         // DONE RENDERING UNDERWATER
 
         sceneBuffer->bind();
@@ -252,14 +254,14 @@ class LevelScreen : public Screen
             );
         }
 
-        sceneBuffer->unbindCurrent();
+        sceneBuffer->unbind();
         glEnable(GL_BLEND);
 
         postProcessingShader.use();
         sceneBuffer->colorTexture->bind(0, postProcessingShader, "scene");
         glDisable(GL_DEPTH_TEST);
         Mesh::getQuad()->render();
-        spaceRenderer.renderSun(sunDir, cam, sceneBuffer->depthTexture, time);
+        spaceRenderer.renderSun(sunDir, cam, sceneBuffer->depthTexture, time, earth);
         glEnable(GL_DEPTH_TEST);
     }
 
@@ -268,7 +270,7 @@ class LevelScreen : public Screen
         cam.viewportWidth = gu::widthPixels;
         cam.viewportHeight = gu::heightPixels;
         if (sceneBuffer) delete sceneBuffer;
-        sceneBuffer = new FrameBuffer(gu::widthPixels, gu::heightPixels);
+        sceneBuffer = new FrameBuffer(gu::widthPixels, gu::heightPixels, 4);
         sceneBuffer->addColorTexture(GL_RGB, GL_LINEAR, GL_LINEAR);
         sceneBuffer->addDepthTexture(GL_LINEAR, GL_LINEAR);
     }

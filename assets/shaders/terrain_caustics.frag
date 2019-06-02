@@ -30,7 +30,7 @@ void main() {
         color.rgb += texture2D(
             causticsSheet,
             vec2(mod(v_texCoord.x * .7 + t * .001, 1./6.), mod(v_texCoord.y * .7 + t * .001, 1./6.)) + offset
-        ).rgb * .014 * max(.6, min(1, 1 - (dist - 20) / 90));
+        ).rgb * .017 * max(.6, min(1, 1 - (dist - 20) / 90));
     }
     
     color.rgb *= dayLight;
