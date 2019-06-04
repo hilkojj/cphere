@@ -8,8 +8,8 @@ uniform sampler2D scene;
 void main()
 {
     vec2 offset = v_texCoords * vec2(-2) + vec2(1);
-    float r = texture(scene, v_texCoords + offset * .0018).r;
-    float g = texture(scene, v_texCoords + offset * .0009).g;
+    float r = texture(scene, v_texCoords + offset * .0010).r;
+    float g = texture(scene, v_texCoords + offset * .0005).g;
     float b = texture(scene, v_texCoords).b;
 
     color = vec4(r, g, b, 1);
