@@ -36,6 +36,10 @@ class Planet
     // must be called to delete islands. NOTE: is also called when planet generation restarts
     void destroyIslands();
 
+    void toJson(json &out);
+
+    void toBinary(std::vector<uint8> &out);
+
   private:
 
     Island *lastIslandUnderCursor = NULL; // used by islUnderCursor() as optimization

@@ -8,6 +8,8 @@
 #include "graphics/3d/mesh.h"
 #include "graphics/camera.h"
 
+#include "json.hpp"
+
 class Planet;
 
 class Island
@@ -24,8 +26,11 @@ class Island
 
     Island(int width, int height, Planet *plt);
 
-    // deletes modelInstance:
     ~Island();
+
+    void toJson(json &out);
+
+    void toBinary(std::vector<uint8> &out);
 
     float seaBottom = 0;
 
@@ -55,7 +60,7 @@ class Island
         // vertex positions in local space, including curvature of the planet.
         vertexPositions,
 
-        // vertex positions in 'planet'/world space.
+        // vertex positions in 'planet'/world space, including curvature of the planet.
         vertexPositionsPlanet,
 
         // vertex positions in local space, EXCLUDING curvature.
@@ -77,7 +82,7 @@ class Island
     /**
      * Texture map of the island.
      * An island can have 5 textures.
-     * 1 background texture and 4 additional textures.
+     * 1 background texture and 4 extra textures.
      *
      * Each vertex has a vec4.
      * 

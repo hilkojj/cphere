@@ -19,6 +19,10 @@
 #include "glm/gtx/transform.hpp"
 #include "glm/gtx/rotate_vector.hpp"
 
+#include "files/file.h"
+
+#include <fstream>
+
 const float EARTH_RADIUS = 150, ATMOSPHERE_RADIUS = 185;
 
 class LevelScreen : public Screen
@@ -74,6 +78,18 @@ class LevelScreen : public Screen
         VertBuffer::uploadSingleMesh(atmosphereMesh);
 
         generateEarth(&earth);
+
+        json e;
+        earth.toJson(e);
+
+        std::ofstream("level.json") << e;
+
+        File::writeBinary("level.ubj", json::to_ubjson(e));
+
+        std::vector<uint8> earthBin;
+        earth.toBinary(earthBin);
+        File::writeBinary("level.bin", earthBin);
+
         waveRenderer = new WaveRenderer(earth);
         cam.position = glm::vec3(-300, 90, -300);
         cam.lookAt(glm::vec3(0));

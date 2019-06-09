@@ -11,9 +11,17 @@ namespace slz
 template <class intType = uint32, int maxVal = 1, int minVal = 0>
 class Float
 {
-public:
+  public:
 
-    static const unsigned int size = sizeof(intType), range = maxVal - minVal;
+    static const unsigned int 
+        size = sizeof(intType), 
+        range = maxVal - minVal;
+
+    template <class vecType>
+    static unsigned int vecSize()
+    {
+        return size * vecType::length();
+    }
 
     static intType serialize(float x)
     {
@@ -85,6 +93,16 @@ public:
             deserializeVec(in + i * offset, &out[startI + i]);
     }
 };
+
+template <class any>
+void add(const any &in, std::vector<unsigned char> &out)
+{
+    auto size = sizeof(any);
+    int startI = out.size();
+    out.resize(startI + size);
+
+    memcpy(&out[startI], &in, size);
+}
 
 } // namespace slz
 
