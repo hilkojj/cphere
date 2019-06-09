@@ -1,37 +1,42 @@
 #ifndef SERIALIZATION_H
 #define SERIALIZATION_H
 
+#include <limits>
+
 #include "glm/glm.hpp"
 
 namespace slz
 {
 
-namespace
-{
-
-template <class intType, unsigned int precision>
+template <class intType = uint32, int maxVal = 1, int minVal = 0>
 class Float
 {
 public:
 
-    static const unsigned int size = sizeof(intType);
+    static const unsigned int size = sizeof(intType), range = maxVal - minVal;
 
-    static intType from(float x)
+    static intType serialize(float x)
     {
-        return x * glm::pow(10, precision) + .5;
+        return ((x - minVal) / (float) range * std::numeric_limits<intType>::max() + .5);
     }
 
-    static float get(intType y)
+    static float deserialize(intType y)
     {
-        return y / glm::pow(10, precision);
+        return (y / (float) std::numeric_limits<intType>::max()) * range + minVal;
     }
 
     template <class vecType>
-    static void serializeVec(vecType v, std::vector<unsigned char> &out)
+    static void serializeVec(const vecType &v, std::vector<unsigned char> &out)
+    {
+        serializeVec(&v, out);
+    }
+
+    template <class vecType>
+    static void serializeVec(const vecType *vPtr, std::vector<unsigned char> &out)
     {
         for (int i = 0; i < vecType::length(); i++)
         {
-            auto val = from(v[i]);
+            auto val = serialize(vPtr->operator[](i));
 
             int dstI = out.size();
 
@@ -44,34 +49,42 @@ public:
     template <class vecType, class inType>
     static void deserializeVec(const inType *in, vecType &out)
     {
+        deserializeVec(in, &out);
+    }
+
+    template <class vecType, class inType>
+    static void deserializeVec(const inType *in, vecType *out)
+    {
         for (int i = 0; i < vecType::length(); i++)
         {
             intType intVal;
             memcpy(&intVal, in + i * size, size);
-            out[i] = get(intVal);
+            out->operator[](i) = deserialize(intVal);
         }
     }
+
+    template <class vecType>
+    static void serializeVecs(const std::vector<vecType> &v, std::vector<unsigned char> &out)
+    {
+        serializeVecs(&v[0], v.size(), out);
+    }
+
+    template <class vecType>
+    static void serializeVecs(const vecType *v, unsigned int n, std::vector<unsigned char> &out)
+    {
+        for (int i = 0; i < n; i++)
+            serializeVec(v[i], out);
+    }
+
+    template <class vecType, class inType>
+    static void deserializeVecs(const inType *in, unsigned int n, std::vector<vecType> &out)
+    {
+        unsigned int offset = vecType::length() * size, startI = out.size();
+        out.resize(out.size() + n);
+        for (int i = 0; i < n; i++)
+            deserializeVec(in + i * offset, &out[startI + i]);
+    }
 };
-
-} // namespace
-
-template <unsigned int precision>
-using float_l = Float<int64, precision>;
-
-template <unsigned int precision>
-using float_m = Float<int32, precision>;
-
-typedef float_m<4> float_m4;
-
-template <unsigned int precision>
-using float_s = Float<int16, precision>;
-
-typedef float_s<2> float_s2;
-
-template <unsigned int precision>
-using float_xs = Float<int8, precision>;
-
-typedef float_xs<1> float_xs1;
 
 } // namespace slz
 
