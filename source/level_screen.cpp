@@ -54,13 +54,13 @@ class LevelScreen : public Screen
           sand(Texture::fromDDSFile("assets/textures/tc_sand.dds")),
           foamTexture(Texture::fromDDSFile("assets/textures/tc_foam.dds")),
 
-        //   terrainTextures(TextureArray::fromDDSFiles({
-        //     //   "assets/textures/tc_sand.dds",
-        //     //   "assets/textures/tc_sand_normal.dds",
+          terrainTextures(TextureArray::fromDDSFiles({
+              "assets/textures/tc_sand.dds",
+              "assets/textures/tc_sand_normal.dds",
 
-        //     //   "assets/textures/tc_grass.dds",
-        //     //   "assets/textures/tc_grass_dead.dds",
-        //   })),
+              "assets/textures/tc_grass.dds",
+              "assets/textures/tc_grass_dead.dds",
+          })),
 
           earthShader(ShaderProgram::fromFiles("EarthShader", "assets/shaders/earth.vert", "assets/shaders/earth.frag")),
           atmosphereShader(ShaderProgram::fromFiles("EarthAtmosphereShader", "assets/shaders/earth_atmosphere.vert", "assets/shaders/earth_atmosphere.frag")),
@@ -73,7 +73,7 @@ class LevelScreen : public Screen
           underwaterBuffer(FrameBuffer(512, 512))
     {
         underwaterBuffer.addColorTexture(GL_RGBA, GL_LINEAR, GL_LINEAR);
-        underwaterBuffer.addDepthTexture(GL_NEAREST, GL_NEAREST);
+        underwaterBuffer.addDepthTexture(GL_LINEAR, GL_LINEAR);
 
         VertBuffer::uploadSingleMesh(atmosphereMesh);
 
@@ -162,7 +162,7 @@ class LevelScreen : public Screen
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         // RENDER ISLANDS:
         terrainShader.use();
-        // terrainTextures->bind(0);
+        terrainTextures->bind(0);
         glDisable(GL_BLEND);
         glUniform1i(terrainShader.location("terrainTextures"), 0);
         glUniform3f(terrainShader.location("sunDir"), sunDir.x, sunDir.y, sunDir.z);
@@ -266,7 +266,7 @@ class LevelScreen : public Screen
         sceneBuffer->colorTexture->bind(0, postProcessingShader, "scene");
         glDisable(GL_DEPTH_TEST);
         Mesh::getQuad()->render();
-        // spaceRenderer.renderSun(sunDir, cam, sceneBuffer->depthTexture, time, earth);
+        spaceRenderer.renderSun(sunDir, cam, sceneBuffer->depthTexture, time, earth);
         glEnable(GL_DEPTH_TEST);
     }
 
@@ -277,7 +277,7 @@ class LevelScreen : public Screen
         if (sceneBuffer) delete sceneBuffer;
         sceneBuffer = new FrameBuffer(gu::widthPixels, gu::heightPixels, 0);
         sceneBuffer->addColorTexture(GL_RGB, GL_LINEAR, GL_LINEAR);
-        sceneBuffer->addDepthTexture(GL_NEAREST, GL_NEAREST);
+        sceneBuffer->addDepthTexture(GL_LINEAR, GL_LINEAR);
     }
 
     ~LevelScreen()

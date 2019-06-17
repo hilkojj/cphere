@@ -24,13 +24,13 @@ SpaceRenderer::SpaceRenderer()
     })),
     sunTexture(Texture::fromDDSFile("assets/textures/sun/sun.dds")),
 
-    // flareTextures(TextureArray::fromDDSFiles({
-    //     "assets/textures/sun/flare1.dds",
-    //     "assets/textures/sun/flare0.dds",
-    //     "assets/textures/sun/flare3.dds",
-    //     "assets/textures/sun/flare4.dds",
-    //     "assets/textures/sun/flare5.dds"
-    // })),
+    flareTextures(TextureArray::fromDDSFiles({
+        "assets/textures/sun/flare1.dds",
+        "assets/textures/sun/flare0.dds",
+        "assets/textures/sun/flare3.dds",
+        "assets/textures/sun/flare4.dds",
+        "assets/textures/sun/flare5.dds"
+    })),
     sunShader(ShaderProgram::fromFiles(
         "SunShader",
         "assets/shaders/sun_and_flare.vert",
@@ -118,6 +118,8 @@ void SpaceRenderer::renderSun(const vec3 &sunDir, const Camera &cam, SharedTextu
     glUniform1f(sunShader.location("time"), time);
     glDisable(GL_DEPTH_TEST);
     Mesh::getQuad()->render();
+
+    return;
 
     // lensflare:
     float lensFlareA = 1;
