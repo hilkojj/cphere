@@ -1,6 +1,6 @@
 
 #include "gu/screen.h"
-#include "glad/glad.h"
+#include "gl_includes.h"
 #include "graphics/texture.h"
 #include "graphics/texture_array.h"
 #include "level/planet.h"
@@ -72,26 +72,26 @@ class LevelScreen : public Screen
 
           underwaterBuffer(FrameBuffer(512, 512))
     {
-        // underwaterBuffer.addColorTexture(GL_RGBA, GL_LINEAR, GL_LINEAR);
-        // underwaterBuffer.addDepthTexture(GL_LINEAR, GL_LINEAR);
+        underwaterBuffer.addColorTexture(GL_RGBA, GL_LINEAR, GL_LINEAR);
+        underwaterBuffer.addDepthTexture(GL_NEAREST, GL_NEAREST);
 
         VertBuffer::uploadSingleMesh(atmosphereMesh);
 
-        // generateEarth(&earth);
+        generateEarth(&earth);
 
-        // waveRenderer = new WaveRenderer(earth);
+        waveRenderer = new WaveRenderer(earth);
         cam.position = glm::vec3(-300, 90, -300);
         cam.lookAt(glm::vec3(0));
         cam.update();
         camController.speedMultiplier = 100;
-        // glEnable(GL_CULL_FACE);
-        // glCullFace(GL_BACK);
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
 
-        // glEnable(GL_DEPTH_TEST);
-        // glDepthFunc(GL_LESS);
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LESS);
 
-        // glEnable(GL_BLEND);
-        // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         
         // glEnable(GL_MULTISAMPLE);
     }
@@ -109,7 +109,7 @@ class LevelScreen : public Screen
             waveRenderer = new WaveRenderer(earth);
         }
 
-        // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         Island *hoveredIsland = NULL;
         ivec2 hoveredTile(0);
@@ -133,94 +133,94 @@ class LevelScreen : public Screen
         glm::vec3 sunDir = glm::vec3(glm::sin(time * .008), 0, glm::cos(time * .008));
 
         // RENDER UNDERWATER:
-        // underwaterBuffer.bind();
-        // glEnable(GL_BLEND);
+        underwaterBuffer.bind();
+        glEnable(GL_BLEND);
 
-        // glClearColor(0, 0, 0, 1);
-        // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClearColor(0, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // causticsShader.use();
-        // caustics->bind(0, causticsShader, "causticsSheet");
-        // sand->bind(1, causticsShader, "terrainTexture");
+        causticsShader.use();
+        caustics->bind(0, causticsShader, "causticsSheet");
+        sand->bind(1, causticsShader, "terrainTexture");
 
-        // glUniform1f(causticsShader.location("time"), time);
-        // glUniform3f(causticsShader.location("sunDir"), sunDir.x, sunDir.y, sunDir.z);
+        glUniform1f(causticsShader.location("time"), time);
+        glUniform3f(causticsShader.location("sunDir"), sunDir.x, sunDir.y, sunDir.z);
 
-        // for (auto isl : earth.islands)
-        // {
-        //     glUniformMatrix4fv(glGetUniformLocation(causticsShader.id(), "viewTrans"), 1, GL_FALSE, &cam.combined[0][0]);
-        //     isl->terrainMesh->render();
-        // }
+        for (auto isl : earth.islands)
+        {
+            glUniformMatrix4fv(glGetUniformLocation(causticsShader.id(), "viewTrans"), 1, GL_FALSE, &cam.combined[0][0]);
+            isl->terrainMesh->render();
+        }
 
         // render waves to alpha channel of underwaterBuffer
-        // waveRenderer->render(newDeltaTime, cam.combined);
+        waveRenderer->render(newDeltaTime, cam.combined);
 
-        // underwaterBuffer.unbind();
+        underwaterBuffer.unbind();
         // DONE RENDERING UNDERWATER
 
-        // sceneBuffer->bind();
-        // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        sceneBuffer->bind();
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         // RENDER ISLANDS:
-        // terrainShader.use();
+        terrainShader.use();
         // terrainTextures->bind(0);
-        // glDisable(GL_BLEND);
-        // glUniform1i(terrainShader.location("terrainTextures"), 0);
-        // glUniform3f(terrainShader.location("sunDir"), sunDir.x, sunDir.y, sunDir.z);
-        // glUniform1i(terrainShader.location("backgroundTerrainLayer"), 0);
-        // glUniform4f(terrainShader.location("terrainLayers"), 2, 3, 4, 5);
-        // glUniform4f(terrainShader.location("hasNormal"), 0, 0, 0, 0); // (background must have normal)
+        glDisable(GL_BLEND);
+        glUniform1i(terrainShader.location("terrainTextures"), 0);
+        glUniform3f(terrainShader.location("sunDir"), sunDir.x, sunDir.y, sunDir.z);
+        glUniform1i(terrainShader.location("backgroundTerrainLayer"), 0);
+        glUniform4f(terrainShader.location("terrainLayers"), 2, 3, 4, 5);
+        glUniform4f(terrainShader.location("hasNormal"), 0, 0, 0, 0); // (background must have normal)
 
-        // for (auto isl : earth.islands)
-        // {
-        //     glUniformMatrix4fv(terrainShader.location("viewTrans"), 1, GL_FALSE, &cam.combined[0][0]);
-        //     isl->terrainMesh->mode = isl == hoveredIsland ? GL_LINES : GL_TRIANGLES;
-        //     isl->terrainMesh->render();
-        //     isl->terrainMesh->mode = GL_TRIANGLES;
-        // }
+        for (auto isl : earth.islands)
+        {
+            glUniformMatrix4fv(terrainShader.location("viewTrans"), 1, GL_FALSE, &cam.combined[0][0]);
+            isl->terrainMesh->mode = isl == hoveredIsland ? GL_LINES : GL_TRIANGLES;
+            isl->terrainMesh->render();
+            isl->terrainMesh->mode = GL_TRIANGLES;
+        }
         // DONE RENDERING ISLANDS
 
         // RENDER WATER:
-        // earthShader.use();
-        // glEnable(GL_BLEND);
-        // seaNormalMap->bind(0, earthShader, "seaNormals");
-        // seaDUDV->bind(1, earthShader, "seaDUDV");
-        // underwaterBuffer.colorTexture->bind(2, earthShader, "underwaterTexture");
-        // underwaterBuffer.depthTexture->bind(3, earthShader, "underwaterDepthTexture");
-        // foamTexture->bind(4, earthShader, "foamTexture");
-        // glm::mat4 mvp = cam.combined;
+        earthShader.use();
+        glEnable(GL_BLEND);
+        seaNormalMap->bind(0, earthShader, "seaNormals");
+        seaDUDV->bind(1, earthShader, "seaDUDV");
+        underwaterBuffer.colorTexture->bind(2, earthShader, "underwaterTexture");
+        underwaterBuffer.depthTexture->bind(3, earthShader, "underwaterDepthTexture");
+        foamTexture->bind(4, earthShader, "foamTexture");
+        glm::mat4 mvp = cam.combined;
     
-        // glUniformMatrix4fv(glGetUniformLocation(earthShader.id(), "MVP"), 1, GL_FALSE, &mvp[0][0]);
-        // glUniform1f(earthShader.location("time"), time);
-        // glUniform2f(earthShader.location("scrSize"), gu::widthPixels, gu::heightPixels);
-        // glUniform3f(earthShader.location("camPos"), cam.position.x, cam.position.y, cam.position.z);
-        // glUniform3f(earthShader.location("sunDir"), sunDir.x, sunDir.y, sunDir.z);
-        // earth.mesh->render();
+        glUniformMatrix4fv(earthShader.location("MVP"), 1, GL_FALSE, &mvp[0][0]);
+        glUniform1f(earthShader.location("time"), time);
+        glUniform2f(earthShader.location("scrSize"), gu::widthPixels, gu::heightPixels);
+        glUniform3f(earthShader.location("camPos"), cam.position.x, cam.position.y, cam.position.z);
+        glUniform3f(earthShader.location("sunDir"), sunDir.x, sunDir.y, sunDir.z);
+        earth.mesh->render();
         // DONE RENDERING WATER
 
         spaceRenderer.renderBox(sunDir, cam);
 
         // RENDER ATMOSPHERE:
-        // atmosphereShader.use();
-        // glDepthMask(false);
-        // glEnable(GL_BLEND);
+        atmosphereShader.use();
+        glDepthMask(false);
+        glEnable(GL_BLEND);
 
-        // mvp = glm::mat4(1.0f);
-        // glm::vec3 cP = glm::normalize(cam.position) * earth.sphere.radius;
-        // float lon = earth.longitude(cP.x, cP.z), lat = earth.latitude(cP.y);
-        // mvp = glm::rotate(mvp, -(lon + 90) * mu::DEGREES_TO_RAD, mu::Y);
-        // mvp = glm::rotate(mvp, lat * mu::DEGREES_TO_RAD, mu::X);
-        // mvp = cam.combined * mvp;
+        mvp = glm::mat4(1.0f);
+        glm::vec3 cP = glm::normalize(cam.position) * earth.sphere.radius;
+        float lon = earth.longitude(cP.x, cP.z), lat = earth.latitude(cP.y);
+        mvp = glm::rotate(mvp, -(lon + 90) * mu::DEGREES_TO_RAD, mu::Y);
+        mvp = glm::rotate(mvp, lat * mu::DEGREES_TO_RAD, mu::X);
+        mvp = cam.combined * mvp;
 
-        // glm::vec3 weirdSunDir = sunDir;
-        // weirdSunDir = glm::rotate(weirdSunDir, (lon + 90) * mu::DEGREES_TO_RAD, mu::Y);
-        // weirdSunDir = glm::rotate(weirdSunDir, -lat * mu::DEGREES_TO_RAD, mu::X);
+        glm::vec3 weirdSunDir = sunDir;
+        weirdSunDir = glm::rotate(weirdSunDir, (lon + 90) * mu::DEGREES_TO_RAD, mu::Y);
+        weirdSunDir = glm::rotate(weirdSunDir, -lat * mu::DEGREES_TO_RAD, mu::X);
 
-        // glUniformMatrix4fv(atmosphereShader.location("MVP"), 1, GL_FALSE, &mvp[0][0]);
-        // glUniform3f(atmosphereShader.location("sunDir"), weirdSunDir.x, weirdSunDir.y, weirdSunDir.z);
-        // glUniform1f(atmosphereShader.location("camDist"), glm::length(cam.position) - ATMOSPHERE_RADIUS);
+        glUniformMatrix4fv(atmosphereShader.location("MVP"), 1, GL_FALSE, &mvp[0][0]);
+        glUniform3f(atmosphereShader.location("sunDir"), weirdSunDir.x, weirdSunDir.y, weirdSunDir.z);
+        glUniform1f(atmosphereShader.location("camDist"), glm::length(cam.position) - ATMOSPHERE_RADIUS);
         
-        // atmosphereMesh->render();
-        // glDepthMask(true);
+        atmosphereMesh->render();
+        glDepthMask(true);
         // DONE RENDERING ATMOSPHERE
 
         glDisable(GL_BLEND);
@@ -230,44 +230,44 @@ class LevelScreen : public Screen
         lineRenderer.line(glm::vec3(0, -300, 0), glm::vec3(0, 300, 0), mu::Y);
         lineRenderer.line(glm::vec3(0, 0, -300), glm::vec3(0, 0, 300), mu::Z);
 
-        // for (int i = 0; i < 100; i += 2)
-        //     lineRenderer.line(sunDir * glm::vec3(i * 5), sunDir * glm::vec3((i + 1) * 5), glm::vec3(1, 1, 0));
+        for (int i = 0; i < 100; i += 2)
+            lineRenderer.line(sunDir * glm::vec3(i * 5), sunDir * glm::vec3((i + 1) * 5), glm::vec3(1, 1, 0));
 
-        // if (hoveredIsland)
-        // {
-        //     lineRenderer.line(
-        //         hoveredIsland->vertexPositionsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y)],
-        //         hoveredIsland->vertexPositionsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y)] + hoveredIsland->vertexNormalsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y)] * vec3(10),
-        //         mu::X
-        //     );
-        //     lineRenderer.line(
-        //         hoveredIsland->vertexPositionsPlanet[hoveredIsland->xyToVertI(hoveredTile.x + 1, hoveredTile.y)],
-        //         hoveredIsland->vertexPositionsPlanet[hoveredIsland->xyToVertI(hoveredTile.x + 1, hoveredTile.y)] + hoveredIsland->vertexNormalsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y)] * vec3(10),
-        //         mu::X
-        //     );
+        if (hoveredIsland)
+        {
+            lineRenderer.line(
+                hoveredIsland->vertexPositionsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y)],
+                hoveredIsland->vertexPositionsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y)] + hoveredIsland->vertexNormalsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y)] * vec3(10),
+                mu::X
+            );
+            lineRenderer.line(
+                hoveredIsland->vertexPositionsPlanet[hoveredIsland->xyToVertI(hoveredTile.x + 1, hoveredTile.y)],
+                hoveredIsland->vertexPositionsPlanet[hoveredIsland->xyToVertI(hoveredTile.x + 1, hoveredTile.y)] + hoveredIsland->vertexNormalsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y)] * vec3(10),
+                mu::X
+            );
 
-        //     lineRenderer.line(
-        //         hoveredIsland->vertexPositionsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y + 1)],
-        //         hoveredIsland->vertexPositionsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y + 1)] + hoveredIsland->vertexNormalsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y)] * vec3(10),
-        //         mu::X
-        //     );
+            lineRenderer.line(
+                hoveredIsland->vertexPositionsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y + 1)],
+                hoveredIsland->vertexPositionsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y + 1)] + hoveredIsland->vertexNormalsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y)] * vec3(10),
+                mu::X
+            );
 
-        //     lineRenderer.line(
-        //         hoveredIsland->vertexPositionsPlanet[hoveredIsland->xyToVertI(hoveredTile.x + 1, hoveredTile.y + 1)],
-        //         hoveredIsland->vertexPositionsPlanet[hoveredIsland->xyToVertI(hoveredTile.x + 1, hoveredTile.y + 1)] + hoveredIsland->vertexNormalsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y)] * vec3(10),
-        //         mu::X
-        //     );
-        // }
+            lineRenderer.line(
+                hoveredIsland->vertexPositionsPlanet[hoveredIsland->xyToVertI(hoveredTile.x + 1, hoveredTile.y + 1)],
+                hoveredIsland->vertexPositionsPlanet[hoveredIsland->xyToVertI(hoveredTile.x + 1, hoveredTile.y + 1)] + hoveredIsland->vertexNormalsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y)] * vec3(10),
+                mu::X
+            );
+        }
 
-        // sceneBuffer->unbind();
-        // glEnable(GL_BLEND);
+        sceneBuffer->unbind();
+        glEnable(GL_BLEND);
 
-        // postProcessingShader.use();
-        // sceneBuffer->colorTexture->bind(0, postProcessingShader, "scene");
-        // glDisable(GL_DEPTH_TEST);
-        // Mesh::getQuad()->render();
+        postProcessingShader.use();
+        sceneBuffer->colorTexture->bind(0, postProcessingShader, "scene");
+        glDisable(GL_DEPTH_TEST);
+        Mesh::getQuad()->render();
         // spaceRenderer.renderSun(sunDir, cam, sceneBuffer->depthTexture, time, earth);
-        // glEnable(GL_DEPTH_TEST);
+        glEnable(GL_DEPTH_TEST);
     }
 
     void onResize()
@@ -275,9 +275,9 @@ class LevelScreen : public Screen
         cam.viewportWidth = gu::widthPixels;
         cam.viewportHeight = gu::heightPixels;
         if (sceneBuffer) delete sceneBuffer;
-        // sceneBuffer = new FrameBuffer(gu::widthPixels, gu::heightPixels, 4);
-        // sceneBuffer->addColorTexture(GL_RGB, GL_LINEAR, GL_LINEAR);
-        // sceneBuffer->addDepthTexture(GL_LINEAR, GL_LINEAR);
+        sceneBuffer = new FrameBuffer(gu::widthPixels, gu::heightPixels, 0);
+        sceneBuffer->addColorTexture(GL_RGB, GL_LINEAR, GL_LINEAR);
+        sceneBuffer->addDepthTexture(GL_NEAREST, GL_NEAREST);
     }
 
     ~LevelScreen()
