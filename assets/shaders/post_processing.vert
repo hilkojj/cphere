@@ -1,4 +1,4 @@
-#version 430 core
+#version 300 es
 layout(location = 0) in vec3 a_pos;
 
 out vec2 v_texCoords;

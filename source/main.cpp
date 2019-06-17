@@ -2,6 +2,7 @@
 #include <iostream>
 #include "gu/game_utils.h"
 #include "level_screen.cpp"
+#include "test_screens/mesh_screen.cpp"
 #include "utils/math_utils.h"
 
 #include "serialization.h"

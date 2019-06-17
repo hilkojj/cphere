@@ -1,4 +1,6 @@
-#version 430 core
+#version 300 es
+precision mediump float;
+
 layout(location = 0) in vec3 a_pos;
 layout(location = 1) in vec3 a_normal;
 layout(location = 2) in vec2 a_texCoords;
@@ -15,7 +17,7 @@ out vec3 v_sunDirTanSpace;
 
 void main() {
     gl_Position = viewTrans * vec4(a_pos, 1);
-    v_texCoord = a_texCoords * 4;
+    v_texCoord = a_texCoords * 4.;
     v_texBlend = a_texBlend;
 
     vec3 up = a_normal;
