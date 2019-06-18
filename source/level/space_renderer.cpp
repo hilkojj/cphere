@@ -119,8 +119,6 @@ void SpaceRenderer::renderSun(const vec3 &sunDir, const Camera &cam, SharedTextu
     glDisable(GL_DEPTH_TEST);
     Mesh::getQuad()->render();
 
-    return;
-
     // lensflare:
     float lensFlareA = 1;
 

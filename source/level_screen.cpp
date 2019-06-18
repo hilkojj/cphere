@@ -92,8 +92,6 @@ class LevelScreen : public Screen
 
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        
-        // glEnable(GL_MULTISAMPLE);
     }
 
     void render(double deltaTime)
@@ -275,7 +273,7 @@ class LevelScreen : public Screen
         cam.viewportWidth = gu::widthPixels;
         cam.viewportHeight = gu::heightPixels;
         if (sceneBuffer) delete sceneBuffer;
-        sceneBuffer = new FrameBuffer(gu::widthPixels, gu::heightPixels, 0);
+        sceneBuffer = new FrameBuffer(gu::widthPixels, gu::heightPixels, 4);
         sceneBuffer->addColorTexture(GL_RGB, GL_LINEAR, GL_LINEAR);
         sceneBuffer->addDepthTexture(GL_LINEAR, GL_LINEAR);
     }
