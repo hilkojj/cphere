@@ -2,6 +2,7 @@
 #include "planet.h"
 #include "utils/math_utils.h"
 #include "glm/gtx/rotate_vector.hpp"
+#include "../serialization.h"
 
 using namespace glm;
 
@@ -62,5 +63,29 @@ Island *Planet::islUnderCursor(const Camera &cam)
         return isl;
     }
     return NULL;
+}
+
+void Planet::toJson(json &out)
+{
+    json islandsJson;
+
+    for (auto isl : islands)
+    {
+        json j;
+        isl->toJson(j);
+        islandsJson.push_back(j);
+    }
+
+    out = {
+        {"radius", sphere.radius},
+        {"islands", islandsJson}
+    };
+}
+
+
+void Planet::toBinary(std::vector<uint8> &out)
+{
+    slz::add((uint8) islands.size(), out);
+    for (auto isl : islands) isl->toBinary(out);
 }
 

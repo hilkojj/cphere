@@ -2,6 +2,7 @@
 #include "island.h"
 #include "utils/math_utils.h"
 #include "input/mouse_input.h"
+#include "../serialization.h"
 
 Island::Island(int width, int height, Planet *plt)
     : width(width), height(height), planet(plt),
@@ -20,6 +21,42 @@ Island::Island(int width, int height, Planet *plt)
 Island::~Island()
 {
     std::cout << "Destroying island\n";
+}
+
+void Island::toJson(json &out)
+{
+    json verts = json::array();
+    json texMap = json::array();
+
+    for (int i = 0; i < nrOfVerts; i++)
+    {
+        verts[i * 3 + 0] = vertexPositionsOriginal[i].x;
+        verts[i * 3 + 1] = vertexPositionsOriginal[i].y;
+        verts[i * 3 + 2] = vertexPositionsOriginal[i].z;
+
+        texMap[i * 4 + 0] = textureMap[i].r;
+        texMap[i * 4 + 1] = textureMap[i].g;
+        texMap[i * 4 + 2] = textureMap[i].b;
+        texMap[i * 4 + 3] = textureMap[i].a;
+    }
+    out = {
+        {"width", width}, {"height", height},
+        {"longitude", longitude}, {"latitude", latitude},
+        {"vertexPositionsOriginal", verts},
+        {"textureMap", texMap}
+    };
+}
+
+void Island::toBinary(std::vector<uint8> &out)
+{
+    typedef slz::Float<uint16, 200> vertType;
+    typedef slz::Float<uint8> texType;
+
+    out.reserve(2 + vertType::vecSize<vec3>() * nrOfVerts + texType::vecSize<vec4>() * nrOfVerts);
+    slz::add((uint8) width, out);
+    slz::add((uint8) height, out);
+    vertType::serializeVecs(vertexPositionsOriginal, out);
+    texType::serializeVecs(textureMap, out);
 }
 
 int Island::xyToVertI(int x, int y)
