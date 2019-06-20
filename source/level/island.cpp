@@ -3,6 +3,8 @@
 #include "utils/math_utils.h"
 #include "input/mouse_input.h"
 #include "../serialization.h"
+#include "planet.h"
+#include "graphics/3d/tangent_calculator.h"
 
 Island::Island(int width, int height, Planet *plt)
     : width(width), height(height), planet(plt),
@@ -18,45 +20,70 @@ Island::Island(int width, int height, Planet *plt)
     std::cout << "Creating island\n";
 }
 
+typedef slz::Float<uint32, 200, -200> vertType;
+typedef slz::Float<uint8> texType;
+typedef slz::Float<uint32, 360, 0> lonLatType;
+typedef slz::Float<uint32, 200, -200> outlineType;
+
+Island::Island(const std::vector<uint8> &data, uint32 offs, Planet *plt)
+    :
+    Island(data.at(offs), data.at(1 + offs), plt)
+{
+    int nrOfOutlines = data.at(2 + offs);
+    longitude = lonLatType::deserialize(data, 3 + offs);
+    latitude = lonLatType::deserialize(data, 3 + lonLatType::size + offs);
+    int startI = 3 + lonLatType::size * 2 + offs;
+
+    vertType::deserializeVecs(data, startI, nrOfVerts, vertexPositionsOriginal, 0);
+    assert(vertexPositionsOriginal.size() == nrOfVerts);
+    startI += vertType::vecSize<vec3>() * nrOfVerts;
+
+    texType::deserializeVecs(data, startI, nrOfVerts, textureMap, 0);
+    startI += texType::vecSize<vec4>() * nrOfVerts;
+
+    for (int i = 0; i < nrOfOutlines; i++)
+    {
+        auto nrOfPoints = slz::get<uint16>(data, startI);
+        startI += 2;
+        auto &l = outlines2d.emplace_back();
+
+        outlineType::deserializeVecs(data, startI, nrOfPoints, l.points, 0);
+
+        startI += nrOfPoints * outlineType::vecSize<vec2>();
+    }
+}
+
 Island::~Island()
 {
     std::cout << "Destroying island\n";
 }
 
-void Island::toJson(json &out)
+void Island::toBinary(std::vector<uint8> &out) const
 {
-    json verts = json::array();
-    json texMap = json::array();
+    int nrOfOutlinePoints = 0;
+    for (auto &l : outlines2d) nrOfOutlinePoints += l.points.size();
 
-    for (int i = 0; i < nrOfVerts; i++)
-    {
-        verts[i * 3 + 0] = vertexPositionsOriginal[i].x;
-        verts[i * 3 + 1] = vertexPositionsOriginal[i].y;
-        verts[i * 3 + 2] = vertexPositionsOriginal[i].z;
-
-        texMap[i * 4 + 0] = textureMap[i].r;
-        texMap[i * 4 + 1] = textureMap[i].g;
-        texMap[i * 4 + 2] = textureMap[i].b;
-        texMap[i * 4 + 3] = textureMap[i].a;
-    }
-    out = {
-        {"width", width}, {"height", height},
-        {"longitude", longitude}, {"latitude", latitude},
-        {"vertexPositionsOriginal", verts},
-        {"textureMap", texMap}
-    };
-}
-
-void Island::toBinary(std::vector<uint8> &out)
-{
-    typedef slz::Float<uint16, 200> vertType;
-    typedef slz::Float<uint8> texType;
-
-    out.reserve(2 + vertType::vecSize<vec3>() * nrOfVerts + texType::vecSize<vec4>() * nrOfVerts);
+    out.reserve(
+        3 + // width, height, nr of outlines,
+        lonLatType::size * 2 +
+        vertType::vecSize<vec3>() * nrOfVerts + // vertex positions
+        texType::vecSize<vec4>() * nrOfVerts +  // texture map
+        outlines2d.size() * 2 +     // nr of points per outline (uint16)
+        outlineType::vecSize<vec2>() * nrOfOutlinePoints // outline points
+    );
     slz::add((uint8) width, out);
     slz::add((uint8) height, out);
+    slz::add((uint8) outlines2d.size(), out);
+    slz::add(lonLatType::serialize(longitude), out);
+    slz::add(lonLatType::serialize(latitude), out);
+
     vertType::serializeVecs(vertexPositionsOriginal, out);
     texType::serializeVecs(textureMap, out);
+    for (auto &l : outlines2d)
+    {
+        slz::add((uint16) l.points.size(), out);
+        outlineType::serializeVecs(l.points, out);
+    }
 }
 
 int Island::xyToVertI(int x, int y)
@@ -150,4 +177,164 @@ bool Island::tileUnderCursor(glm::ivec2 &out, const Camera &cam)
         return true;
     });
     return found;
+}
+
+void Island::planetDeform()
+{
+    float radius = planet->sphere.radius;
+    vec3 planetOrigin = vec3(0, -radius, 0);
+
+    // STEP 1: replace vertex positions
+    for (int i = 0; i < nrOfVerts; i++)
+    {
+        vec3 &original = vertexPositionsOriginal[i];
+        vec3 &deformed = vertexPositions[i] = normalize(original - planetOrigin);
+        deformed *= radius + original.y;
+        deformed += planetOrigin;
+    }
+    // STEP 2: create outlines in 3d.
+    for (Polygon &outline : outlines2d)
+    {
+        outlines3d.push_back(std::vector<vec3>());
+        auto &outline3d = outlines3d.back();
+        outline3d.reserve(outline.points.size());
+        int i = 0;
+        for (vec2 &p2D : outline.points)
+        {
+            vec3 p3D = normalize(vec3(p2D.x, 0, p2D.y) - planetOrigin);
+            p3D *= radius;
+            p3D += planetOrigin;
+            outline3d.push_back(p3D);
+        }
+    }
+}
+
+static int
+    lol1[]{0, 1, 0, -1},
+    lol2[]{1, 0, -1, 0},
+    lol3[]{0, -1, 0, 1};
+
+void Island::calculateNormals()
+{
+    for (int vertI = 0; vertI < nrOfVerts; vertI++)
+    {
+        int x = vertIToX(vertI), y = vertIToY(vertI);
+        vec3 normal = vec3();
+        vec3 &p0 = vertexPositions[vertI];
+        for (int i = 0; i < 4; i++)
+        {
+            int x1 = x + lol1[i];
+            int y1 = y + lol2[i];
+            int x2 = x + lol2[i];
+            int y2 = y + lol3[i];
+
+            if (x1 < 0 || y1 < 0 || x2 < 0 || y2 < 0 || x1 > width || x2 > width || y1 > height || y2 > height)
+                continue;
+            vec3
+                &p1 = vertexPositions[xyToVertI(x1, y1)],
+                &p2 = vertexPositions[xyToVertI(x2, y2)];
+
+            normal += mu::calculateNormal(p0, p1, p2);
+        }
+        vertexNormals[vertI] = normalize(normal);
+        vertexNormalsPlanet[vertI] = planetTransform * vec4(vertexNormals[vertI], 0);
+    }
+}
+
+void Island::createMesh()
+{
+    std::string name = planet->name + "_island_" + std::to_string(planet->islands.size());
+    VertAttributes attrs = VertAttributes();
+    unsigned int
+        posOffset = attrs.add(VertAttributes::POSITION),
+        norOffset = attrs.add(VertAttributes::NORMAL),
+        uvOffset = attrs.add(VertAttributes::TEX_COORDS),
+        tanOffset = attrs.add(VertAttributes::TANGENT),
+        texOffset = attrs.add({"TEX_BLEND", 4, GL_FALSE});
+
+    SharedMesh mesh = SharedMesh(new Mesh(name + "_mesh", nrOfVerts, width * height * 6, attrs));
+
+    for (int i = 0; i < nrOfVerts; i++)
+    {
+        mesh->setVec3(vertexPositionsPlanet[i], i, posOffset);     // position
+        mesh->setVec3(vertexNormalsPlanet[i], i, norOffset);       // normal
+
+        mesh->setVec2(
+            vec2(vertIToX(i), vertIToY(i)) / vec2(50), i, uvOffset    // texCoords
+        );
+
+        mesh->setVec4(textureMap[i], i, texOffset);    // texture blending
+    }
+
+    int i = 0;
+    for (int y = 0; y < height; y++)
+    {
+        for (int x = 0; x < width; x++)
+        {
+            if (tileAtSeaFloor(x, y)) continue;
+
+            // triangle 1
+            mesh->indices[i + 0] = xyToVertI(x + 1, y + 1);
+            mesh->indices[i + 1] = xyToVertI(x + 1, y);
+            mesh->indices[i + 2] = xyToVertI(x, y);
+
+            // triangle 2
+            mesh->indices[i + 3] = xyToVertI(x, y);
+            mesh->indices[i + 4] = xyToVertI(x, y + 1);
+            mesh->indices[i + 5] = xyToVertI(x + 1, y + 1);
+
+            i += 6;
+        }
+    }
+    mesh->nrOfIndices = mesh->indices.size();
+    TangentCalculator::addTangentsToMesh(mesh);
+    terrainMesh = mesh;
+}
+
+void Island::transformOutlines()
+{
+    auto &transformed = outlines3dTransformed;
+    transformed.clear();
+
+    for (auto &outline : outlines3d)
+    {
+        transformed.push_back(std::vector<vec3>());
+
+        for (auto &p : outline) transformed.back().push_back(planetTransform * vec4(p, 1));
+    }
+}
+
+void Island::transformVertices()
+{
+    for (int i = 0; i < nrOfVerts; i++)
+        vertexPositionsPlanet[i] = planetTransform * vec4(vertexPositions[i], 1);
+}
+
+void Island::calculateLatLonOutlines()
+{
+    auto &lonLatOutlines = outlinesLongLat;
+    lonLatOutlines.clear();
+
+    for (auto &outline : outlines3dTransformed)
+    {
+        lonLatOutlines.push_back(Polygon());
+        auto &lonLatoutline = lonLatOutlines.back();
+
+        for (auto &p : outline)
+            lonLatoutline.points.push_back(vec2(
+                planet->longitude(p.x, p.z),
+                planet->latitude(p.y)
+            ));
+    }
+}
+
+void Island::placeOnPlanet()
+{
+    mat4 transform(1);
+    transform = rotate(transform, longitude * mu::DEGREES_TO_RAD, mu::Y);
+    transform = rotate(transform, latitude * mu::DEGREES_TO_RAD, mu::X);
+    transform = translate(transform, vec3(0, planet->sphere.radius, 0));
+    planetTransform = transform;
+    transformOutlines();
+    calculateLatLonOutlines();
 }

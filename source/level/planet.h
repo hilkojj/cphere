@@ -9,6 +9,8 @@
 #include "graphics/3d/mesh.h"
 #include "graphics/camera.h"
 
+#define PlanetMeshGenerator std::function<SharedMesh()>
+
 class Planet
 {
 
@@ -36,9 +38,11 @@ class Planet
     // must be called to delete islands. NOTE: is also called when planet generation restarts
     void destroyIslands();
 
-    void toJson(json &out);
+    void toBinary(std::vector<uint8> &out) const;
 
-    void toBinary(std::vector<uint8> &out);
+    void fromBinary(const std::vector<uint8> &in, PlanetMeshGenerator meshGenerator, unsigned int inputOffset = 0);
+
+    void uploadMeshes();
 
   private:
 

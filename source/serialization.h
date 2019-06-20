@@ -4,9 +4,42 @@
 #include <limits>
 
 #include "glm/glm.hpp"
+#include "utils/gu_error.h"
 
 namespace slz
 {
+
+template <class any>
+inline void add(const any &in, std::vector<unsigned char> &out)
+{
+    auto size = sizeof(any);
+    int startI = out.size();
+    out.resize(startI + size);
+
+    memcpy(&out[startI], &in, size);
+}
+
+template <class any>
+void get(const std::vector<unsigned char> &in, unsigned int index, any *dest)
+{
+    auto size = sizeof(any);
+
+    if (in.size() < index + size)
+        throw gu_err(
+            "requested item (with size " + std::to_string(size)
+            + ") does not fit in input-vector (of size " + std::to_string(in.size())
+            + ") at index " + std::to_string(index));
+
+    memcpy(dest, &in[index], size);
+}
+
+template <class any>
+any get(const std::vector<unsigned char> &in, unsigned int index)
+{
+    any item;
+    get(in, index, &item);
+    return item;
+}
 
 template <class intType = uint32, int maxVal = 1, int minVal = 0>
 class Float
@@ -33,6 +66,11 @@ class Float
         return (y / (float) std::numeric_limits<intType>::max()) * range + minVal;
     }
 
+    static float deserialize(const std::vector<unsigned char> &data, uint32 index)
+    {
+        return deserialize(slz::get<intType>(data, index));
+    }
+
     template <class vecType>
     static void serializeVec(const vecType &v, std::vector<unsigned char> &out)
     {
@@ -44,8 +82,7 @@ class Float
     {
         for (int i = 0; i < vecType::length(); i++)
         {
-            auto val = serialize(vPtr->operator[](i));
-
+            intType val = serialize(vPtr->operator[](i));
             int dstI = out.size();
 
             out.resize(out.size() + size, 0);
@@ -85,24 +122,26 @@ class Float
     }
 
     template <class vecType, class inType>
-    static void deserializeVecs(const inType *in, unsigned int n, std::vector<vecType> &out)
+    static void deserializeVecs(const inType *in, unsigned int n, std::vector<vecType> &out, uint32 outOffset)
     {
-        unsigned int offset = vecType::length() * size, startI = out.size();
-        out.resize(out.size() + n);
+        unsigned int offset = vecType::length() * size;
+        out.resize(n + outOffset);
         for (int i = 0; i < n; i++)
-            deserializeVec(in + i * offset, &out[startI + i]);
+            deserializeVec(in + i * offset, &out[outOffset + i]);
+    }
+
+    template <class vecType>
+    static void deserializeVecs(const std::vector<unsigned char> &in, unsigned int startIndex, unsigned int n, std::vector<vecType> &out, uint32 outOffset)
+    {
+        if (in.size() < startIndex + n * vecSize<vecType>())
+            throw gu_err(
+                "requested " + std::to_string(n) + " items (with size " + std::to_string(vecSize<vecType>())
+                + ") do not fit in input-vector (of size " + std::to_string(in.size())
+                + ") starting at index " + std::to_string(startIndex));
+
+        deserializeVecs(&in[startIndex], n, out, outOffset);
     }
 };
-
-template <class any>
-void add(const any &in, std::vector<unsigned char> &out)
-{
-    auto size = sizeof(any);
-    int startI = out.size();
-    out.resize(startI + size);
-
-    memcpy(&out[startI], &in, size);
-}
 
 } // namespace slz
 

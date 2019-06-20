@@ -96,17 +96,17 @@ void islandTextureMapper(Island *isl)
     addDeadGrass(isl);
 }
 
+} // namespace
+
 SharedMesh earthMeshGenerator(Planet *earth)
 {
     VertAttributes attrs;
-    attrs.add(VertAttributes::POSITION);
-    attrs.add(VertAttributes::NORMAL);
-    attrs.add(VertAttributes::TANGENT);
-    attrs.add(VertAttributes::TEX_COORDS);
+    attrs.add_(VertAttributes::POSITION)
+        .add_(VertAttributes::NORMAL)
+        .add_(VertAttributes::TANGENT)
+        .add_(VertAttributes::TEX_COORDS);
     return SphereMeshGenerator::generate(earth->name + "_mesh", earth->sphere.radius, 100, 70, attrs);
 }
-
-} // namespace
 
 void generateEarth(Planet *earth)
 {

@@ -5,6 +5,8 @@
 #include "../level/planet.h"
 #include "planet_generator.h"
 
+SharedMesh earthMeshGenerator(Planet *earth);
+
 void generateEarth(Planet *earth);
 
 #endif

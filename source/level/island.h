@@ -26,11 +26,12 @@ class Island
 
     Island(int width, int height, Planet *plt);
 
+    // from binary:
+    Island(const std::vector<uint8> &data, uint32 dataOffset, Planet *plt);
+
     ~Island();
 
-    void toJson(json &out);
-
-    void toBinary(std::vector<uint8> &out);
+    void toBinary(std::vector<uint8> &out) const;
 
     float seaBottom = 0;
 
@@ -90,8 +91,26 @@ class Island
      */
     std::vector<vec4> textureMap;
 
+    /**
+     * The following functions were previously in (island/planet)_generator.h
+     * But these functions are now also needed by the planet_loader
+     */
+    void planetDeform();
+
+    void calculateNormals();
+
+    void createMesh();
+
+    void transformVertices();
+
+    void placeOnPlanet();
+
   private:
     ivec2 prevTileUnderCursor = ivec2(0); // used by tileUnderCursor() as optimization
+
+    void transformOutlines();
+
+    void calculateLatLonOutlines();
 };
 
 #endif

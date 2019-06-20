@@ -30,12 +30,6 @@ class IslandGenerator
 
     void initVertexPositions();
 
-    void planetDeform();
-
-    void calculateNormals();
-
-    void createMesh();
-
 };
 
 #endif

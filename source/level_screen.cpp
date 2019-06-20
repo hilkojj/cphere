@@ -44,7 +44,7 @@ class LevelScreen : public Screen
 
     float time = 0;
 
-    LevelScreen()
+    LevelScreen(bool loadFromFile, const char *loadFilePath)
         : earth("earth", Sphere(EARTH_RADIUS)),
           cam(PerspectiveCamera(.1, 1000, 1, 1, 55)), camController(&cam),
           
@@ -77,18 +77,14 @@ class LevelScreen : public Screen
 
         VertBuffer::uploadSingleMesh(atmosphereMesh);
 
-        generateEarth(&earth);
-
-        json e;
-        earth.toJson(e);
-
-        std::ofstream("level.json") << e;
-
-        File::writeBinary("level.ubj", json::to_ubjson(e));
-
-        std::vector<uint8> earthBin;
-        earth.toBinary(earthBin);
-        File::writeBinary("level.bin", earthBin);
+        if (loadFromFile)
+        {
+            auto earthBin = File::readBinary(loadFilePath);
+            earth.fromBinary(earthBin, [&]() {
+                return earthMeshGenerator(&earth);
+            });
+        }
+        else generateEarth(&earth);
 
         waveRenderer = new WaveRenderer(earth);
         cam.position = glm::vec3(-300, 90, -300);
@@ -118,6 +114,10 @@ class LevelScreen : public Screen
             generateEarth(&earth);
             delete waveRenderer;
             waveRenderer = new WaveRenderer(earth);
+
+            std::vector<uint8> data;
+            earth.toBinary(data);
+            File::writeBinary("level.save", data);
         }
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -237,12 +237,12 @@ class LevelScreen : public Screen
         glDisable(GL_BLEND);
 
         lineRenderer.projection = cam.combined;
-        // lineRenderer.line(glm::vec3(-300, 0, 0), glm::vec3(300, 0, 0), mu::X);
-        // lineRenderer.line(glm::vec3(0, -300, 0), glm::vec3(0, 300, 0), mu::Y);
-        // lineRenderer.line(glm::vec3(0, 0, -300), glm::vec3(0, 0, 300), mu::Z);
+        lineRenderer.line(glm::vec3(-300, 0, 0), glm::vec3(300, 0, 0), mu::X);
+        lineRenderer.line(glm::vec3(0, -300, 0), glm::vec3(0, 300, 0), mu::Y);
+        lineRenderer.line(glm::vec3(0, 0, -300), glm::vec3(0, 0, 300), mu::Z);
 
-        // for (int i = 0; i < 100; i += 2)
-        //     lineRenderer.line(sunDir * glm::vec3(i * 5), sunDir * glm::vec3((i + 1) * 5), glm::vec3(1, 1, 0));
+        for (int i = 0; i < 100; i += 2)
+            lineRenderer.line(sunDir * glm::vec3(i * 5), sunDir * glm::vec3((i + 1) * 5), glm::vec3(1, 1, 0));
 
         if (hoveredIsland)
         {

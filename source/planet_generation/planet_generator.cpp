@@ -3,7 +3,6 @@
 #include "glm/gtx/rotate_vector.hpp"
 #include "planet_generator.h"
 #include "utils/math_utils.h"
-#include "graphics/3d/vert_buffer.h"
 
 PlanetGenerator::PlanetGenerator(Planet *planet, IslandContextProvider islContextProvider, int nrOfIslands, PlanetMeshGenerator meshGenerator)
     : plt(planet),
@@ -31,7 +30,7 @@ void PlanetGenerator::generate()
         plt->destroyIslands();
     }
     plt->mesh = meshGenerator();
-    uploadMeshes();
+    plt->uploadMeshes();
 
     std::cout << "Generation of " << plt->name << " done. Placed " << plt->islands.size() << "/" << nrOfIslands << " islands.\n";
 }
@@ -76,59 +75,16 @@ bool PlanetGenerator::tryToPlaceOnPlanet(Island *isl, float lon, float lat)
 {
     isl->longitude = lon;
     isl->latitude = lat;
-    mat4 transform(1);
-    transform = rotate(transform, isl->longitude * mu::DEGREES_TO_RAD, mu::Y);
-    transform = rotate(transform, isl->latitude * mu::DEGREES_TO_RAD, mu::X);
-    transform = translate(transform, vec3(0, 150, 0));
-    isl->planetTransform = transform;
-    transformOutlines(isl);
-    calculateLatLonOutlines(isl);
+    isl->placeOnPlanet();
 
     if (overflowsLongitude(isl)) return false;
 
     for (Island *isl1 : plt->islands)
         if (overlaps(isl, isl1)) return false;
 
-    transformVertices(isl);
+    isl->transformVertices();
     plt->islands.push_back(isl);
     return true;
-}
-
-void PlanetGenerator::transformOutlines(Island *isl)
-{
-    auto &transformed = isl->outlines3dTransformed;
-    transformed.clear();
-
-    for (auto &outline : isl->outlines3d)
-    {
-        transformed.push_back(std::vector<vec3>());
-
-        for (auto &p : outline) transformed.back().push_back(isl->planetTransform * vec4(p, 1));
-    }
-}
-
-void PlanetGenerator::transformVertices(Island *isl)
-{
-    for (int i = 0; i < isl->nrOfVerts; i++)
-        isl->vertexPositionsPlanet[i] = isl->planetTransform * vec4(isl->vertexPositions[i], 1);
-}
-
-void PlanetGenerator::calculateLatLonOutlines(Island *isl)
-{
-    auto &lonLatOutlines = isl->outlinesLongLat;
-    lonLatOutlines.clear();
-
-    for (auto &outline : isl->outlines3dTransformed)
-    {
-        lonLatOutlines.push_back(Polygon());
-        auto &lonLatoutline = lonLatOutlines.back();
-
-        for (auto &p : outline)
-            lonLatoutline.points.push_back(vec2(
-                plt->longitude(p.x, p.z),
-                plt->latitude(p.y)
-            ));
-    }
 }
 
 bool PlanetGenerator::overflowsLongitude(Island *isl)
@@ -168,16 +124,4 @@ bool PlanetGenerator::overlaps(Island *isl0, Island *isl1)
         }
     }
     return false;
-}
-
-void PlanetGenerator::uploadMeshes()
-{
-    VertBuffer *buffer = NULL;
-    for (auto isl : plt->islands)
-    {
-        if (!buffer) buffer = VertBuffer::with(isl->terrainMesh->attributes);
-        buffer->add(isl->terrainMesh);
-    }
-    if (buffer) buffer->upload(false);
-    VertBuffer::uploadSingleMesh(plt->mesh);
 }

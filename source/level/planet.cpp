@@ -3,6 +3,8 @@
 #include "utils/math_utils.h"
 #include "glm/gtx/rotate_vector.hpp"
 #include "../serialization.h"
+#include "utils/gu_error.h"
+#include "graphics/3d/vert_buffer.h"
 
 using namespace glm;
 
@@ -65,27 +67,53 @@ Island *Planet::islUnderCursor(const Camera &cam)
     return NULL;
 }
 
-void Planet::toJson(json &out)
-{
-    json islandsJson;
-
-    for (auto isl : islands)
-    {
-        json j;
-        isl->toJson(j);
-        islandsJson.push_back(j);
-    }
-
-    out = {
-        {"radius", sphere.radius},
-        {"islands", islandsJson}
-    };
-}
-
-
-void Planet::toBinary(std::vector<uint8> &out)
+void Planet::toBinary(std::vector<uint8> &out) const
 {
     slz::add((uint8) islands.size(), out);
-    for (auto isl : islands) isl->toBinary(out);
+    for (int i = 0; i < islands.size(); i++)
+        slz::add(uint32(0), out);
+
+    for (int i = 0; i < islands.size(); i++)
+    {
+        uint32 beginSize = out.size();
+        islands[i]->toBinary(out);
+        uint32 size = out.size() - beginSize;
+
+        memcpy(&out[1 + i * 4], &size, 4);
+    }
 }
 
+void Planet::fromBinary(const std::vector<uint8> &in, PlanetMeshGenerator meshGenerator, unsigned int inputOffset)
+{
+    uint8 nrOfIslands = in.at(inputOffset);
+
+    uint32 startI = nrOfIslands * 4 + 1 + inputOffset;
+    for (int i = 0; i < nrOfIslands; i++)
+    {
+        auto size = slz::get<uint32>(in, inputOffset + 1 + i * 4);
+
+        islands.push_back(new Island(in, startI, this));
+        auto isl = islands.back();
+        isl->planetDeform();
+        isl->placeOnPlanet();
+        isl->transformVertices();
+        isl->calculateNormals();
+        isl->createMesh();
+        startI += size;
+    }
+    mesh = meshGenerator();
+    uploadMeshes();
+    std::cout << "planet loaded from binary\n";
+}
+
+void Planet::uploadMeshes()
+{
+    VertBuffer *buffer = NULL;
+    for (auto isl : islands)
+    {
+        if (!buffer) buffer = VertBuffer::with(isl->terrainMesh->attributes);
+        buffer->add(isl->terrainMesh);
+    }
+    if (buffer) buffer->upload(false);
+    VertBuffer::uploadSingleMesh(mesh);
+}

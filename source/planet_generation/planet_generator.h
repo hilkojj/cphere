@@ -10,8 +10,6 @@
 #include "graphics/3d/model.h"
 #include "island_generator.h"
 
-#define PlanetMeshGenerator std::function<SharedMesh()>
-
 #define IslandContextProvider std::function<IslandContext()>
 
 struct IslandContext
@@ -46,17 +44,9 @@ class PlanetGenerator
 
     bool tryToPlaceOnPlanet(Island *isl, float lon, float lat);
 
-    void transformOutlines(Island *isl);
-
-    void transformVertices(Island *isl);
-
-    void calculateLatLonOutlines(Island* isl);
-
     bool overflowsLongitude(Island* isl);
 
     bool overlaps(Island* isl0, Island* isl1);
-
-    void uploadMeshes();
 
 };
 
