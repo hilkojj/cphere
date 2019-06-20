@@ -1,4 +1,5 @@
-#version 430 core
+#version 300 es
+precision mediump float;
 
 in vec3 v_normal;
 in vec2 v_texCoord;
@@ -10,11 +11,11 @@ uniform sampler2D causticsSheet;
 uniform sampler2D terrainTexture;
 uniform float time;
 
-const float near = .1, far = 1000;
+const float near = .1, far = 1000.;
 
 void main() {
 
-    color = texture2D(terrainTexture, v_texCoord);
+    color = texture(terrainTexture, v_texCoord);
 
     // light
     float dayLight = dot(v_normal, sunDir) * .3 + .7;
@@ -27,10 +28,10 @@ void main() {
 
         vec2 offset = vec2(x / 6., y / 6.);
 
-        color.rgb += texture2D(
+        color.rgb += texture(
             causticsSheet,
             vec2(mod(v_texCoord.x * .7 + t * .001, 1./6.), mod(v_texCoord.y * .7 + t * .001, 1./6.)) + offset
-        ).rgb * .017 * max(.6, min(1, 1 - (dist - 20) / 90));
+        ).rgb * .017 * max(.6, min(1., 1. - (dist - 20.) / 90.));
     }
     
     color.rgb *= dayLight;

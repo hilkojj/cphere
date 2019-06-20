@@ -1,4 +1,6 @@
-#version 430 core
+#version 300 es
+precision mediump float;
+precision lowp sampler2DArray;
 
 // in vec3 v_normal, v_tangent;
 in vec2 v_texCoord;
@@ -15,20 +17,20 @@ uniform int backgroundTerrainLayer;
 uniform vec4 terrainLayers, hasNormal;
 
 void main() {
-    float remainingA = 1;
+    float remainingA = 1.;
 
     color = vec3(0);
     vec3 normal = vec3(0);
 
-    for (int i = 3; i >= -1 && remainingA > 0; i--)
+    for (int i = 3; i >= -1 && remainingA > 0.; i--)
     {
         float a = i == -1 ? remainingA : v_texBlend[i];
-        float layer = i == -1 ? backgroundTerrainLayer : terrainLayers[i];
+        float layer = i == -1 ? float(backgroundTerrainLayer) : terrainLayers[i];
 
         vec4 rgbAndHeight = texture(terrainTextures, vec3(v_texCoord, layer));
-        vec3 texNormal = (i == -1 || hasNormal[i] > .5) ? texture(terrainTextures, vec3(v_texCoord, layer + 1)).xyz : vec3(.5, .5, 1);
+        vec3 texNormal = (i == -1 || hasNormal[i] > .5) ? texture(terrainTextures, vec3(v_texCoord, layer + 1.)).xyz : vec3(.5, .5, 1);
 
-        if (a == 0) continue;
+        if (a == 0.) continue;
 
         if (i >= 0)
         {
@@ -43,8 +45,8 @@ void main() {
         normal += texNormal * a;
         remainingA -= a;
     }
-    normal *= 2;
-    normal -= 1;
+    normal *= 2.;
+    normal -= 1.;
 
     // light
     float dayLight = dot(normal, v_sunDirTanSpace) * .3 + .7;

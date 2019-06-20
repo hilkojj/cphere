@@ -1,6 +1,6 @@
 
 #include "gu/screen.h"
-#include "glad/glad.h"
+#include "gl_includes.h"
 #include "graphics/texture.h"
 #include "graphics/texture_array.h"
 #include "level/planet.h"
@@ -99,8 +99,6 @@ class LevelScreen : public Screen
 
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        
-        glEnable(GL_MULTISAMPLE);
     }
 
     void render(double deltaTime)
@@ -200,7 +198,7 @@ class LevelScreen : public Screen
         foamTexture->bind(4, earthShader, "foamTexture");
         glm::mat4 mvp = cam.combined;
     
-        glUniformMatrix4fv(glGetUniformLocation(earthShader.id(), "MVP"), 1, GL_FALSE, &mvp[0][0]);
+        glUniformMatrix4fv(earthShader.location("MVP"), 1, GL_FALSE, &mvp[0][0]);
         glUniform1f(earthShader.location("time"), time);
         glUniform2f(earthShader.location("scrSize"), gu::widthPixels, gu::heightPixels);
         glUniform3f(earthShader.location("camPos"), cam.position.x, cam.position.y, cam.position.z);
