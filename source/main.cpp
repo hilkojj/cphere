@@ -6,9 +6,12 @@
 int main(int argc, char *argv[])
 {
     gu::Config config = {};
-    config.printOpenGLMessages = true;
+    config.printOpenGLMessages = false;
     config.samples = 0;
-    #ifdef EMSCRITPEN
+
+    config.vsync = true;
+
+    #ifdef EMSCRIPTEN
     config.vsync = true;
     #endif
 

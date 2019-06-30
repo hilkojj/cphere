@@ -123,9 +123,9 @@ class LevelScreen : public Screen
         Island *hoveredIsland = NULL;
         ivec2 hoveredTile(0);
 
+        MouseInput::setLockedMode(false);
         if (KeyInput::justPressed(GLFW_KEY_G))
         {
-            MouseInput::setLockedMode(false);
         }
         else if (KeyInput::justReleased(GLFW_KEY_G))
         {
