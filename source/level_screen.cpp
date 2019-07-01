@@ -70,7 +70,7 @@ class LevelScreen : public Screen
 
           atmosphereMesh(SphereMeshGenerator::generate("earth_atmosphere", ATMOSPHERE_RADIUS, 60, 70, VertAttributes().add_(VertAttributes::POSITION).add_(VertAttributes::NORMAL))),
 
-          underwaterBuffer(FrameBuffer(512, 512))
+          underwaterBuffer(FrameBuffer(1024, 1024))
     {
         underwaterBuffer.addColorTexture(GL_RGBA, GL_LINEAR, GL_LINEAR);
         underwaterBuffer.addDepthTexture(GL_LINEAR, GL_LINEAR);

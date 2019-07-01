@@ -8,7 +8,7 @@ int main(int argc, char *argv[])
     gu::Config config = {};
     config.printOpenGLMessages = true;
     config.samples = 0;
-    #ifdef EMSCRITPEN
+    #ifdef EMSCRIPTEN
     config.vsync = true;
     #endif
 
