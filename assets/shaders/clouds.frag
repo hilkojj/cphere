@@ -4,13 +4,16 @@ precision mediump float;
 out vec4 color;
 
 in vec2 v_texCoords, v_pos;
-in float progress, opacity;
+in vec3 cloudColor;
+in float opacity;
 
 uniform sampler2D noiseTex;
 
 void main()
 {
     float texA = textureLod(noiseTex, v_texCoords, 6. - 6. * opacity).r;
-    color = vec4(1, 1, 1, texA * opacity * .4);
-    color.a *= 1. - length(v_pos);
+    texA *= opacity;
+    texA *= 1. - length(v_pos);
+
+    color = vec4(cloudColor, texA);
 }

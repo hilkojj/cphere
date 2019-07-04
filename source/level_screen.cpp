@@ -24,7 +24,7 @@
 
 #include <fstream>
 
-const float EARTH_RADIUS = 150, ATMOSPHERE_RADIUS = 185;
+const float EARTH_RADIUS = 150, ATMOSPHERE_RADIUS = 200;
 
 class LevelScreen : public Screen
 {
@@ -70,7 +70,7 @@ class LevelScreen : public Screen
           terrainShader(ShaderProgram::fromFiles("TerrainShader", "assets/shaders/terrain.vert", "assets/shaders/terrain.frag")),
           postProcessingShader(ShaderProgram::fromFiles("PostProcessingShader", "assets/shaders/post_processing.vert", "assets/shaders/post_processing.frag")),
 
-          atmosphereMesh(SphereMeshGenerator::generate("earth_atmosphere", ATMOSPHERE_RADIUS, 60, 70, VertAttributes().add_(VertAttributes::POSITION).add_(VertAttributes::NORMAL))),
+          atmosphereMesh(SphereMeshGenerator::generate("earth_atmosphere", ATMOSPHERE_RADIUS, 50, 130, VertAttributes().add_(VertAttributes::POSITION).add_(VertAttributes::NORMAL))),
           cloudRenderer(&earth),
 
           underwaterBuffer(FrameBuffer(1024, 1024))
@@ -235,7 +235,7 @@ class LevelScreen : public Screen
         glDepthMask(true);
         // DONE RENDERING ATMOSPHERE
 
-        cloudRenderer.render(time, cam);
+        cloudRenderer.render(time, newDeltaTime, cam, sunDir);
 
         glDisable(GL_BLEND);
 

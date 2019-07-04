@@ -21,9 +21,9 @@ void main()
     gl_Position = MVP * vec4(a_pos, 1);
 
     float camDot = 1. - dot(a_normal, vec3(0, 1, 0));
-    float edge = camDot * 10. - (camDist / 150.);
+    float edge = camDot * 12. - (camDist / 150.);
     edge = clamp1(edge);
-    float middle = camDot * 8. * max(.1, clamp1(1. - camDist / 500.));
+    float middle = camDot * 9. * max(.1, clamp1(1. - camDist / 500.));
     middle = clamp1(middle);
     v_alpha = middle - edge;
 

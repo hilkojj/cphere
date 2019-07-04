@@ -6,18 +6,25 @@
 #include "graphics/shader_program.h"
 #include "graphics/texture.h"
 
+struct Cloud
+{
+    float lon, lat, speed, timeSinceSpawn, timeToDespawn;
+    int spawnPoints;
+};
+
 class CloudRenderer
 {
   public:
     CloudRenderer(Planet *earth);
 
-    void render(double time, Camera &cam);
+    void render(double time, double deltaTime, Camera &cam, vec3 sunDir);
 
   private:
     SharedMesh quad;
     Planet *earth;
     ShaderProgram shader;
     SharedTexture noiseTex;
+    std::vector<Cloud> clouds;
 
 };
 
