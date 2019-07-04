@@ -6,6 +6,7 @@
 #include "level/planet.h"
 #include "level/wave_renderer.h"
 #include "level/space_renderer.h"
+#include "level/cloud_renderer.h"
 #include "input/key_input.h"
 #include "input/mouse_input.h"
 #include "planet_generation/earth_generator.h"
@@ -41,6 +42,7 @@ class LevelScreen : public Screen
     FrameBuffer underwaterBuffer, *sceneBuffer = NULL;
     WaveRenderer *waveRenderer;
     SpaceRenderer spaceRenderer;
+    CloudRenderer cloudRenderer;
 
     float time = 0;
 
@@ -69,6 +71,7 @@ class LevelScreen : public Screen
           postProcessingShader(ShaderProgram::fromFiles("PostProcessingShader", "assets/shaders/post_processing.vert", "assets/shaders/post_processing.frag")),
 
           atmosphereMesh(SphereMeshGenerator::generate("earth_atmosphere", ATMOSPHERE_RADIUS, 60, 70, VertAttributes().add_(VertAttributes::POSITION).add_(VertAttributes::NORMAL))),
+          cloudRenderer(&earth),
 
           underwaterBuffer(FrameBuffer(1024, 1024))
     {
@@ -181,7 +184,7 @@ class LevelScreen : public Screen
 
         for (auto isl : earth.islands)
         {
-            glUniformMatrix4fv(terrainShader.location("viewTrans"), 1, GL_FALSE, &cam.combined[0][0]);
+            glUniformMatrix4fv(terrainShader.location("viewTrans"), 1, GL_FALSE, &(cam.combined[0][0]));
             isl->terrainMesh->mode = isl == hoveredIsland ? GL_LINES : GL_TRIANGLES;
             isl->terrainMesh->render();
             isl->terrainMesh->mode = GL_TRIANGLES;
@@ -231,6 +234,8 @@ class LevelScreen : public Screen
         atmosphereMesh->render();
         glDepthMask(true);
         // DONE RENDERING ATMOSPHERE
+
+        cloudRenderer.render(time, cam);
 
         glDisable(GL_BLEND);
 
