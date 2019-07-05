@@ -6,11 +6,12 @@
 int main(int argc, char *argv[])
 {
     gu::Config config = {};
-    config.printOpenGLMessages = true;
+    config.printOpenGLMessages = false;
     config.samples = 0;
     #ifdef EMSCRIPTEN
     config.vsync = true;
     #endif
+    config.vsync = true;
 
     if (!gu::init(config))
         return -1;

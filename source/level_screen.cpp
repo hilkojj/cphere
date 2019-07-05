@@ -35,7 +35,7 @@ class LevelScreen : public Screen
     ShaderProgram earthShader, causticsShader, terrainShader, atmosphereShader, postProcessingShader;
     FlyingCameraController camController;
     DebugLineRenderer lineRenderer;
-    SharedTexture seaNormalMap, seaDUDV, caustics, sand, foamTexture;
+    SharedTexture seaNormalMap, seaDUDV, caustics, sand, foamTexture, seaWaves;
     SharedTexArray terrainTextures;
     SharedMesh atmosphereMesh;
 
@@ -55,6 +55,8 @@ class LevelScreen : public Screen
           caustics(Texture::fromDDSFile("assets/textures/tc_caustics.dds")),
           sand(Texture::fromDDSFile("assets/textures/tc_sand.dds")),
           foamTexture(Texture::fromDDSFile("assets/textures/tc_foam.dds")),
+
+          seaWaves(Texture::fromDDSFile("assets/textures/sea_waves.dds")),
 
           terrainTextures(TextureArray::fromDDSFiles({
               "assets/textures/tc_sand.dds",
@@ -120,6 +122,7 @@ class LevelScreen : public Screen
             earth.toBinary(data);
             File::writeBinary("level.save", data);
         }
+        ShaderProgram::reloadFromFile = int(time * 2.) % 2 == 0;//KeyInput::justPressed(GLFW_KEY_F5);
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -199,6 +202,7 @@ class LevelScreen : public Screen
         underwaterBuffer.colorTexture->bind(2, earthShader, "underwaterTexture");
         underwaterBuffer.depthTexture->bind(3, earthShader, "underwaterDepthTexture");
         foamTexture->bind(4, earthShader, "foamTexture");
+        seaWaves->bind(5, earthShader, "seaWaves");
         glm::mat4 mvp = cam.combined;
     
         glUniformMatrix4fv(earthShader.location("MVP"), 1, GL_FALSE, &mvp[0][0]);

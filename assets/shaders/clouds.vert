@@ -5,10 +5,7 @@ precision mediump float;
 layout(location = 0) in vec3 a_pos;
 
 // per instance attributes:
-layout(location = 1) in vec3 spawnPoint0;
-layout(location = 2) in vec3 spawnPoint1;
-layout(location = 3) in vec3 spawnPoint2;
-layout(location = 4) in vec3 spawnPoint3;
+layout(location = 1) in vec3 spawnPoint;
 
 out vec2 v_texCoords, v_pos;
 out vec3 cloudColor;
@@ -35,8 +32,6 @@ void main()
 
     float size = (random(nr + 100.) + .5) * 90.;
     pos *= size;
-
-    vec3 spawnPoint = spawnPoint0;
     pos += spawnPoint;
 
     float cycleTime = 60. * (random(nr) + .5);

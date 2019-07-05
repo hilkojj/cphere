@@ -1,5 +1,5 @@
 #version 300 es
-precision mediump float;
+precision highp float;
 
 layout(location = 0) in vec3 a_pos;
 layout(location = 1) in vec3 a_normal;
@@ -117,7 +117,7 @@ void main()
     gl_Position = MVP * vec4(a_pos, 1); // temporary
     float waveMultiplier = max(.1, min(1., 1. - (gl_Position.z - 20.) / 100.));
 
-    vec3 pos = a_pos * (1. + snoise(a_normal * 10. + vec3(time * .1)) * .003 * waveMultiplier);
+    vec3 pos = a_pos;// * (1. + snoise(a_normal * 10. + vec3(time * .1)) * .002 * waveMultiplier);
     gl_Position = MVP * vec4(pos, 1.);
     v_normal = a_normal;
     v_tangent = a_tangent;
@@ -127,11 +127,11 @@ void main()
     v_edge =  1.0 - dot(a_normal, viewVector);
     v_edge = min(1., max(v_edge * 3.0, 0.));
 
-    vec3 up = normalize(a_normal + vec3(
-        snoise(a_normal * 10. + vec3(time * .1)),
-        snoise(vec3(a_normal.z, a_normal.x, a_normal.y) * 10. + vec3(time * .1)),
-        snoise(vec3(a_normal.y, a_normal.x, a_normal.y) * 10. + vec3(time * .1))
-    ) * .3 * waveMultiplier);
+    vec3 up = a_normal;// normalize(a_normal + vec3(
+    //     snoise(a_normal * 10. + vec3(time * .1)),
+    //     snoise(vec3(a_normal.z, a_normal.x, a_normal.y) * 10. + vec3(time * .1)),
+    //     snoise(vec3(a_normal.y, a_normal.x, a_normal.y) * 10. + vec3(time * .1))
+    // ) * .2 * waveMultiplier);
     vec3 tan = a_tangent;
     vec3 bitan = normalize(cross(up, tan));
 

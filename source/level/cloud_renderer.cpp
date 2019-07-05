@@ -17,21 +17,15 @@ CloudRenderer::CloudRenderer(Planet *earth)
     VertBuffer::uploadSingleMesh(quad);
 
     VertData spawnpoints(VertAttributes()
-        .add_({"SPAWNPOINT0", 3})
-        .add_({"SPAWNPOINT1", 3})
-        .add_({"SPAWNPOINT2", 3})
-        .add_({"SPAWNPOINT3", 3}),
+        .add_({"SPAWNPOINT", 3}),
         std::vector<float>(nrOfSpawnpoints * 4 * 3)
     );
     for (int i = 0; i < nrOfSpawnpoints; i++)
-        for (int j = 0; j < 4; j++)
-            spawnpoints.setVec3(
-                vec3(mu::random() - .5, (mu::random() - .5) * .3, mu::random() - .5)
-                * vec3(1 + i * .3) * vec3(110.),
-
-                i, j * 3
-            );
-
+        spawnpoints.setVec3(
+            vec3(mu::random() - .5, (mu::random() - .5) * .3, mu::random() - .5)
+            * vec3(1 + i * .2) * vec3(110.),
+            i, 0
+        );
     quad->vertBuffer->uploadPerInstanceData(spawnpoints, particlesPerOffset);
 }
 
