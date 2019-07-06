@@ -15,7 +15,7 @@ void main()
 {
     float t = timer;
     if (a_wavefront < .5)
-        t = max(0., timer * timer * .7);
+        t = max(0., timer * .6);
     vec3 pos = a_pos0 * (1. - t) + a_pos1 * t;
     
     gl_Position = view * vec4(pos, 1);

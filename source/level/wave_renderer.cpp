@@ -60,15 +60,15 @@ void WaveRenderer::createWavesForOutline(IslandWaves &islWaves, Polygon &outline
         }
         normal = normalize(vec2(normal.y, -normal.x));
 
-        offsetted.points[i] = outline.points[i] + normal * vec2(5.5);
+        offsetted.points[i] = outline.points[i] + normal * vec2(3.5);
     }
 
-    int nrOfWaves = nrOfPoints / 3;
+    int nrOfWaves = nrOfPoints / 5;
     for (int i = 0; i < nrOfWaves; i++)
     {
         for (int j = 0; j < 100; j++)
         {
-            int waveLength = min(mu::randomInt(3, 20), nrOfPoints);
+            int waveLength = min(mu::randomInt(3, 10), nrOfPoints);
             int waveStart = mu::randomInt(0, nrOfPoints - waveLength);
             if (createWave(islWaves, outline, offsetted, waveStart, waveLength))
                 break;
@@ -85,7 +85,7 @@ bool WaveRenderer::createWave(IslandWaves &islWaves, Polygon &outline, Polygon &
         vec2 p0 = offsetted.points[i + waveStart],
             p1 = outline.points[i + waveStart];
 
-        p1 -= (p0 - p1) * vec2(.8);
+        p1 -= (p0 - p1) * vec2(.2);
 
         for (int j = i + 1; j < waveLength; j++)
             if (mu::lineSegmentsIntersect(p0, p1, offsetted.points[j + waveStart], outline.points[j + waveStart]))
@@ -133,7 +133,7 @@ void WaveRenderer::render(double deltaTime, const glm::mat4 &view)
 
         for (auto &wave : islWaves.waves)
         {
-            if (wave.timer == 0 && mu::random() < .8 * deltaTime)
+            if (wave.timer == 0 && mu::random() < .5 * deltaTime)
             {
                 wave.timer = .0001;
                 wave.timeMultiplier = mu::random(.7, 1);
