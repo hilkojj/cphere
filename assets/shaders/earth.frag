@@ -63,7 +63,7 @@ float seaHeight(vec2 uv)
 
     for (int i = 0; i < 5; i++)
     {
-    	float p = wavePattern((uv + time * .4) * scale, detail) + wavePattern((uv - time * .3) * scale, detail);
+    	float p = wavePattern((uv + time * .2) * scale, detail) + wavePattern((uv - time * .1) * scale, detail);
         
         height += p * strength;
         
@@ -79,8 +79,8 @@ float seaHeight(vec2 uv)
 
 void normalAndHeight(out vec3 normalDetailed, out vec3 normal, out float height, float detail)
 {
-    const vec3 off = vec3(-.01, 0, .01);
-    vec2 uv = v_texCoords * 200.;
+    const vec3 off = vec3(-.02, 0, .02);
+    vec2 uv = v_texCoords * 100.;
     // https://stackoverflow.com/questions/5281261/generating-a-normal-map-from-a-height-map
     float s11 = height = seaHeight(uv);
     float s01 = seaHeight(uv + off.xy);
@@ -88,13 +88,13 @@ void normalAndHeight(out vec3 normalDetailed, out vec3 normal, out float height,
     float s10 = seaHeight(uv + off.yx);
     float s12 = seaHeight(uv + off.yz);
     
-    vec2 sizeDetailed = vec2(.11 - .05 * detail, 0.); // .06
+    vec2 sizeDetailed = vec2(.15 - .09 * detail, 0.); // .06
     vec3 va = normalize(vec3(sizeDetailed.xy, s21 - s01));
     vec3 vb = normalize(vec3(sizeDetailed.yx, s12 - s10));
 
     normalDetailed = cross(va, vb);
 
-    vec2 size = vec2(.6 - .47 * detail, 0.); // .13
+    vec2 size = vec2(1., 0.); // .13
     va = normalize(vec3(size.xy, s21 - s01));
     vb = normalize(vec3(size.yx, s12 - s10));
     normal = cross(va, vb);
@@ -102,12 +102,12 @@ void normalAndHeight(out vec3 normalDetailed, out vec3 normal, out float height,
 
 vec3 specular(vec3 normal, float seaHeight)
 {
-    vec3 reflectDir = reflect(sunDir, normal * v_fromTanSpace);
+    vec3 normallll = normal * .8 + vec3(0, 0, .2);
+    vec3 reflectDir = reflect(sunDir, normallll * v_fromTanSpace);
     float specular = dot(reflectDir, normalize(v_toCamera));
     specular = clamp(specular, 0, 1);
     float dampedSpec = pow(specular, 200.);
-    // return pow(seaHeight, 6.);
-    return dampedSpec * .5 * vec3(1., .9, .6) * pow(seaHeight, 1.5);
+    return dampedSpec * vec3(1., .95, .9);
 }
 
 void foamAndWaves(inout vec3 normal, inout vec3 normalDetailed, vec2 screenCoords, float detail, float seaHeight, float seaDepth)
@@ -117,7 +117,7 @@ void foamAndWaves(inout vec3 normal, inout vec3 normalDetailed, vec2 screenCoord
     // waves from heightmap:
     float waveHeight = 1. - texture(underwaterTexture, screenCoords).a;
 
-    float foam = pow(clamp1((seaHeight - 1.23) * 6.), 5.);
+    float foam = clamp1(pow(clamp1((seaHeight - 1.23) * 6.), 5.));
     vec3 waveNormal = vec3(0, 0, 1);
 
     if (waveHeight > 0.)
@@ -189,13 +189,20 @@ void underwater(float seaDepth, vec3 normal, vec2 screenCoords, float visibility
     }
 }
 
-float fresnelReflection(vec3 normal, float distToSea, float daylight)
+float fresnelReflection(vec3 normal, float detail, float daylight)
 {
+    float dayLightEffect = (1. - detail) * .7 + .3;
     vec3 reflectionColor = vec3(.5, .7, .9);
+
+    reflectionColor *= daylight * dayLightEffect + (1. - dayLightEffect);
+
+    reflectionColor *= detail * .2 + .8;
+
+    reflectionColor *= (1. - v_edge * pow(1. - detail, 5.)) * .7 + .3;
 
     vec3 viewVector =  normalize(v_camPosTanSpace - normal);
     float fr =  1.0 - dot(normal, viewVector);
-    fr *= 2.;
+    fr *= 2. * detail + 1.5;
     fr = clamp1(fr);
     color.rgb += reflectionColor * fr;
     return fr;
@@ -222,7 +229,7 @@ void main()
 
     // sea color:
     color = vec4(0.12, .15, .29, 1.) * seaHeight;
-    color += vec4(0.13, .14, .3, 1.) * (1. - seaHeight);
+    color += vec4(0.15, .14, .3, 1.) * (1. - seaHeight);
 
     // daylight:
     float daylight = clamp1(dot(vec3(0, 0, 1), v_sunDirTanSpace) + .4);
@@ -231,18 +238,20 @@ void main()
     foamAndWaves(normal, normalDetailed, screenCoords, detail, seaHeight, seaDepth);
 
     // diffuse light:
-    float lambertTerm = dot(normalDetailed, v_sunDirTanSpace);
-    color.rgb *= lambertTerm * .3 + .7;
+    float lambertTerm = clamp1(dot(normal, v_sunDirTanSpace));
+    color.rgb *= lambertTerm * .4 + .6;
 
     // reflection:
-    float fresnel = fresnelReflection(normal, distToSea, daylight);
+    float fresnel = fresnelReflection(normal, detail, daylight);
 
     // underwater:
-    underwater(seaDepth, normal, screenCoords, 1. - fresnel);
+    underwater(seaDepth, normal, screenCoords, clamp1(1. - fresnel - clamp1(.1 - detail)));
 
     // specular:
     color.rgb += specular(normalDetailed, seaHeight);
 
     // fade edges:
-    color.a = seaDepth * (3. + clamp1(normalDetailed.x) * 6.);
+    color.a = seaDepth * 2.;
+
+    // color.rgb = vec3(seaHeight);
 }
