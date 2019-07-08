@@ -16,9 +16,9 @@ uniform vec3 sunDir;
 // uniform sampler2D seaNormals;
 // uniform sampler2D seaDUDV;
 uniform sampler2D foamTexture;
+uniform sampler2D seaWaves;
 uniform sampler2D underwaterTexture;
 uniform sampler2D underwaterDepthTexture;
-uniform sampler2D seaWaves;
 
 uniform float time;
 uniform vec2 scrSize;
@@ -34,7 +34,7 @@ float clamp1(float x)
  * A function that samples a texture in a weird way.
  * The poles of the earth use different texture coordinates.
  */
-vec4 sampleTex(sampler2D tex, vec2 coords, float y, float scale)
+vec4 sampleTex(sampler2D tex, vec2 offset, float y, float scale)
 {
     y = abs(y * 2. - 1.);
     float weirdness = 0.;
@@ -42,14 +42,14 @@ vec4 sampleTex(sampler2D tex, vec2 coords, float y, float scale)
     bool inPole = y > 1. - pole;
     if (inPole || y > 1. - pole - poleMargin)
     {
-        c = texture(tex, (v_normal.xz * scale * .2) + coords);
+        c = texture(tex, (v_normal.xz * scale * .3) + offset);
         if (inPole) return c;
 
         weirdness = y - (1. - pole - poleMargin);
         weirdness /= pole - poleMargin;
         c *= weirdness;
     }
-    return c + texture(tex, (v_texCoords * scale) + coords) * (1. - weirdness);
+    return c + texture(tex, (v_texCoords * scale) + offset) * (1. - weirdness);
 }
 
 float wavePattern(vec2 uv, float detail)
@@ -77,16 +77,48 @@ float seaHeight(vec2 uv)
     return height;
 }
 
+// similar to sampleTex() but for seaHeight
+float seaHeightSphere(vec2 off)
+{
+    float y = abs(v_texCoords.y * 2. - 1.);
+    float weirdness = 0.;
+    float height = 0.;
+    bool inPole = y > 1. - pole;
+    if (inPole || y > 1. - pole - poleMargin)
+    {
+        height = seaHeight(v_normal.xz * 30. + off);
+        if (inPole) return height;
+
+        weirdness = y - (1. - pole - poleMargin);
+        weirdness /= pole - poleMargin;
+        height *= weirdness;
+    }
+
+    float height0 = 0., weirdness0 = 0.;
+
+    if (v_texCoords.x > .98)
+    {
+        float x = v_texCoords.x - 1.;
+
+        weirdness0 = (v_texCoords.x - .98) * 50.;
+
+        height0 = (seaHeight(vec2(x, v_texCoords.y) * 100. + off) * weirdness0);
+    }
+
+    height0 += seaHeight(v_texCoords * 100. + off) * (1. - weirdness0);
+
+    return height + height0 * (1. - weirdness);
+}
+
 void normalAndHeight(out vec3 normalDetailed, out vec3 normal, out float height, float detail)
 {
     const vec3 off = vec3(-.02, 0, .02);
-    vec2 uv = v_texCoords * 100.;
     // https://stackoverflow.com/questions/5281261/generating-a-normal-map-from-a-height-map
-    float s11 = height = seaHeight(uv);
-    float s01 = seaHeight(uv + off.xy);
-    float s21 = seaHeight(uv + off.zy);
-    float s10 = seaHeight(uv + off.yx);
-    float s12 = seaHeight(uv + off.yz);
+    float s11 = height = seaHeightSphere(vec2(0));
+    float s01 = seaHeightSphere(off.xy);
+    float s21 = seaHeightSphere(off.zy);
+    float s10 = seaHeightSphere(off.yx);
+    float s12 = seaHeightSphere(off.yz);
     
     vec2 sizeDetailed = vec2(.15 - .09 * detail, 0.); // .06
     vec3 va = normalize(vec3(sizeDetailed.xy, s21 - s01));
@@ -152,14 +184,9 @@ void foamAndWaves(inout vec3 normal, inout vec3 normalDetailed, vec2 screenCoord
     {
         foam *= seaHeight;
 
-        foam *= sampleTex(foamTexture, vec2(
-
-                    v_texCoords.x * 100., v_texCoords.y * 20.
-
-                ) + waveNormal.xy * .02 + normal.xy * .03, y, 60.).r;
+        foam *= sampleTex(foamTexture, waveNormal.xy * .02 + normal.xy * .03, y, 120.).r;
         color.rgb += foam;
     }
-    // color.rgb = waveNormal;
 }
 
 void underwater(float seaDepth, vec3 normal, vec2 screenCoords, float visibility)
@@ -251,7 +278,5 @@ void main()
     color.rgb += specular(normalDetailed, seaHeight);
 
     // fade edges:
-    color.a = seaDepth * 2.;
-
-    // color.rgb = vec3(seaHeight);
+    color.a = seaDepth * 4.;
 }
