@@ -38,11 +38,11 @@ void Planet::destroyIslands()
     islands.clear();
 }
 
-bool Planet::cursorToLonLat(const Camera &cam, vec2 &lonLat) const
+bool Planet::cursorToLonLat(const Camera *cam, vec2 &lonLat) const
 {
-    vec3 rayDir = cam.getCursorRayDirection();
+    vec3 rayDir = cam->getCursorRayDirection();
     vec3 intersection;
-    if (sphere.rayIntersection(cam.position, rayDir, &intersection, NULL))
+    if (sphere.rayIntersection(cam->position, rayDir, &intersection, NULL))
     {
         lonLat.x = longitude(intersection.x, intersection.z);
         lonLat.y = latitude(intersection.y);
@@ -54,7 +54,7 @@ bool Planet::cursorToLonLat(const Camera &cam, vec2 &lonLat) const
 Island *Planet::islUnderCursor(const Camera &cam)
 {
     vec2 lonLat;
-    if (!cursorToLonLat(cam, lonLat)) return NULL;
+    if (!cursorToLonLat(&cam, lonLat)) return NULL;
 
     if (lastIslandUnderCursor && lastIslandUnderCursor->containsLonLatPoint(lonLat.x, lonLat.y))
         return lastIslandUnderCursor;

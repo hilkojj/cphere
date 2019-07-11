@@ -7,6 +7,7 @@
 #include "level/wave_renderer.h"
 #include "level/space_renderer.h"
 #include "level/cloud_renderer.h"
+#include "level/planet_camera_movement.h"
 #include "input/key_input.h"
 #include "input/mouse_input.h"
 #include "planet_generation/earth_generator.h"
@@ -31,9 +32,14 @@ class LevelScreen : public Screen
 
   public:
     Planet earth;
-    PerspectiveCamera cam;
     ShaderProgram earthShader, causticsShader, terrainShader, atmosphereShader, postProcessingShader;
+
+    PerspectiveCamera cam;
     FlyingCameraController camController;
+    PlanetCameraMovement planetCamMovement;
+
+    bool camPlanetMode = true;
+
     DebugLineRenderer lineRenderer;
     SharedTexture seaNormalMap, seaDUDV, caustics, sand, foamTexture, seaWaves;
     SharedTexArray terrainTextures;
@@ -48,7 +54,7 @@ class LevelScreen : public Screen
 
     LevelScreen(bool loadFromFile, const char *loadFilePath)
         : earth("earth", Sphere(EARTH_RADIUS)),
-          cam(PerspectiveCamera(.1, 1000, 1, 1, 55)), camController(&cam),
+          cam(PerspectiveCamera(.1, 1000, 1, 1, 55)), camController(&cam), planetCamMovement(&cam, &earth),
           
           seaNormalMap(Texture::fromDDSFile("assets/textures/sea_normals.dds")),
           seaDUDV(Texture::fromDDSFile("assets/textures/sea_dudv.dds")),
@@ -92,7 +98,7 @@ class LevelScreen : public Screen
         else generateEarth(&earth);
 
         waveRenderer = new WaveRenderer(earth);
-        cam.position = glm::vec3(-300, 90, -300);
+        cam.position = glm::vec3(0, 0, 300);
         cam.lookAt(glm::vec3(0));
         cam.update();
         camController.speedMultiplier = 100;
@@ -104,6 +110,8 @@ class LevelScreen : public Screen
 
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        MouseInput::setLockedMode(!camPlanetMode);
     }
 
     void render(double deltaTime)
@@ -130,16 +138,22 @@ class LevelScreen : public Screen
         ivec2 hoveredTile(0);
 
         if (KeyInput::justPressed(GLFW_KEY_G))
-        {
             MouseInput::setLockedMode(false);
-        }
-        else if (KeyInput::justReleased(GLFW_KEY_G))
-        {
+        else if (KeyInput::justReleased(GLFW_KEY_G) && !camPlanetMode)
             MouseInput::setLockedMode(true);
+
+        if (KeyInput::justPressed(GLFW_KEY_C))
+        {
+            camPlanetMode = !camPlanetMode;
+            MouseInput::setLockedMode(!camPlanetMode);
         }
-        if (!KeyInput::pressed(GLFW_KEY_G))
-            camController.update(deltaTime); // free camera movement
-        else
+
+        if (camPlanetMode)
+            planetCamMovement.update(deltaTime); // planet camera movement
+        else if (!KeyInput::pressed(GLFW_KEY_G))
+            camController.update(deltaTime); // flying camera movement
+
+        if (KeyInput::pressed(GLFW_KEY_G))
         {
             hoveredIsland = earth.islUnderCursor(cam);
             if (hoveredIsland) hoveredIsland->tileUnderCursor(hoveredTile, cam);

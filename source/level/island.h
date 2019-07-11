@@ -27,6 +27,7 @@ class Island
     Island(int width, int height, Planet *plt);
 
     // from binary:
+    // TODO: invisible/sea-level vertices are not removed.
     Island(const std::vector<uint8> &data, uint32 dataOffset, Planet *plt);
 
     ~Island();

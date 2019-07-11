@@ -132,10 +132,18 @@ void normalAndHeight(out vec3 normalDetailed, out vec3 normal, out float height,
     normal = cross(va, vb);
 }
 
-vec3 specular(vec3 normal, float seaHeight)
+vec3 specular(vec3 normal, float seaHeight, float detail)
 {
     vec3 normallll = normal * .8 + vec3(0, 0, .2);
-    vec3 reflectDir = reflect(sunDir, normallll * v_fromTanSpace);
+
+    // fake the sun-direction so that the specular-effect can be seen at more places
+    float fakeDir = detail * .66;
+    vec3 sunDirrrr = vec3(0, 0, 1) * v_fromTanSpace;
+    sunDirrrr *= fakeDir;
+    sunDirrrr += sunDir * (1. - fakeDir);
+    sunDirrrr = normalize(sunDirrrr);
+
+    vec3 reflectDir = reflect(sunDirrrr, normallll * v_fromTanSpace);
     float specular = dot(reflectDir, normalize(v_toCamera));
     specular = clamp(specular, 0, 1);
     float dampedSpec = pow(specular, 200.);
@@ -237,6 +245,7 @@ float fresnelReflection(vec3 normal, float detail, float daylight)
 
 void main()
 {
+    // discard;
     vec2 screenCoords = gl_FragCoord.xy / scrSize;
 
     float distToSea = 2.0 * near * far / (far + near - (2.0 * gl_FragCoord.z - 1.0) * (far - near));
@@ -275,7 +284,7 @@ void main()
     underwater(seaDepth, normal, screenCoords, clamp1(1. - fresnel - clamp1(.1 - detail)));
 
     // specular:
-    color.rgb += specular(normalDetailed, seaHeight);
+    color.rgb += specular(normalDetailed, seaHeight, detail);
 
     // fade edges:
     color.a = seaDepth * 4.;

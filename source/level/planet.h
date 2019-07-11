@@ -31,7 +31,7 @@ class Planet
 
     glm::vec3 lonLatTo3d(float lon, float lat, float altitude) const;
 
-    bool cursorToLonLat(const Camera &cam, vec2 &lonLat) const;
+    bool cursorToLonLat(const Camera *cam, vec2 &lonLat) const;
 
     Island *islUnderCursor(const Camera &cam);
 
