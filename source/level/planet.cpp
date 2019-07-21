@@ -23,6 +23,23 @@ float Planet::latitude(float y) const
     return mu::RAD_TO_DEGREES * glm::acos((y) / sphere.radius);
 }
 
+float minAbs(float a, float b)
+{
+    return abs(a) < abs(b) ? a : b;
+}
+
+vec2 Planet::deltaLonLat(vec2 a, vec2 b)
+{
+    vec2 minP = a.x < b.x ? a : b;
+    vec2 maxP = a.x < b.x ? b : a;
+
+    return vec2(
+        minAbs(b.x - a.x, ((maxP.x - 360) - minP.x) * (a.x < b.x ? 1 : -1)),
+
+        b.y - a.y
+    );
+}
+
 glm::vec3 Planet::lonLatTo3d(float lon, float lat, float altitude) const
 {
     glm::vec3 out(0, sphere.radius + altitude, 0);

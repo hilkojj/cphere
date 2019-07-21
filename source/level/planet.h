@@ -29,6 +29,8 @@ class Planet
 
     float latitude(float y) const;
 
+    static vec2 deltaLonLat(vec2 a, vec2 b);
+
     glm::vec3 lonLatTo3d(float lon, float lat, float altitude) const;
 
     bool cursorToLonLat(const Camera *cam, vec2 &lonLat) const;
