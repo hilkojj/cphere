@@ -233,7 +233,7 @@ float fresnelReflection(vec3 normal, float detail, float daylight)
 
     reflectionColor *= detail * .2 + .8;
 
-    reflectionColor *= (1. - v_edge * pow(1. - detail, 5.)) * .7 + .3;
+    reflectionColor *= (1. - v_edge * pow(1. - detail, 5.)) * .5 + .5;
 
     vec3 viewVector =  normalize(v_camPosTanSpace - normal);
     float fr =  1.0 - dot(normal, viewVector);

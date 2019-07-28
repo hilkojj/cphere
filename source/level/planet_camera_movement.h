@@ -14,6 +14,8 @@ class PlanetCameraMovement
 
     void update(double deltaTime);
 
+    float zoomVelocity = 0;
+
   private:
     void dragUpdate();
     vec2 dragVelocity() const;

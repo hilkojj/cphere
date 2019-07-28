@@ -6,6 +6,8 @@ out vec4 color;
 in vec2 v_texCoords;
 
 uniform sampler2D scene;
+uniform vec2 resolution;
+uniform float zoomEffect;
 
 void main()
 {
@@ -16,22 +18,21 @@ void main()
 
     color = vec4(r, g, b, 1);
 
-    // const vec2 resolution = vec2(1600, 900);
+    vec2 mbOffset = vec2(gl_FragCoord.x / resolution.x, gl_FragCoord.y / resolution.y) - vec2(.5);
 
-    // vec2 mbOffset = vec2(gl_FragCoord.x / resolution.x, gl_FragCoord.y / resolution.y) - vec2(.5);
+    if (zoomEffect > .05)
+    {
+        const int steps = 20;
+        float div = 1.;
 
-    // const int steps = 20;
-
-    // float div = 1.;
-
-    // for (int i = 0; i < steps; i++)
-    // {
-    //     float effect = 3. - float(i) / float(steps);
-    //     div += effect;
-    //     color += texture(scene, v_texCoords - mbOffset * .2 * (float(i) / float(steps))) * effect;
-    // }
-
-    // color /= div;
+        for (int i = 0; i < steps; i++)
+        {
+            float effect = 1. - float(i) / float(steps);
+            div += effect;
+            color += texture(scene, v_texCoords - mbOffset * .05 * zoomEffect * (float(i) / float(steps))) * effect;
+        }
+        color /= div;
+    }
 
     float vignette = smoothstep(3.0, .6, length(offset));
     color.rgb *= vignette;

@@ -56,8 +56,6 @@ class LevelScreen : public Screen
         : earth("earth", Sphere(EARTH_RADIUS)),
           cam(PerspectiveCamera(.1, 1000, 1, 1, 55)), camController(&cam), planetCamMovement(&cam, &earth),
           
-          seaNormalMap(Texture::fromDDSFile("assets/textures/sea_normals.dds")),
-          seaDUDV(Texture::fromDDSFile("assets/textures/sea_dudv.dds")),
           caustics(Texture::fromDDSFile("assets/textures/tc_caustics.dds")),
           sand(Texture::fromDDSFile("assets/textures/tc_sand.dds")),
           foamTexture(Texture::fromDDSFile("assets/textures/tc_foam.dds")),
@@ -211,12 +209,10 @@ class LevelScreen : public Screen
         // RENDER WATER:
         earthShader.use();
         glEnable(GL_BLEND);
-        seaNormalMap->bind(0, earthShader, "seaNormals");
-        seaDUDV->bind(1, earthShader, "seaDUDV");
+        foamTexture->bind(0, earthShader, "foamTexture");
+        seaWaves->bind(1, earthShader, "seaWaves");
         underwaterBuffer.colorTexture->bind(2, earthShader, "underwaterTexture");
         underwaterBuffer.depthTexture->bind(3, earthShader, "underwaterDepthTexture");
-        foamTexture->bind(4, earthShader, "foamTexture");
-        seaWaves->bind(5, earthShader, "seaWaves");
         glm::mat4 mvp = cam.combined;
     
         glUniformMatrix4fv(earthShader.location("MVP"), 1, GL_FALSE, &mvp[0][0]);
@@ -295,6 +291,8 @@ class LevelScreen : public Screen
         glEnable(GL_BLEND);
 
         postProcessingShader.use();
+        glUniform1f(postProcessingShader.location("zoomEffect"), planetCamMovement.zoomVelocity / 2.);
+        glUniform2f(postProcessingShader.location("resolution"), gu::widthPixels, gu::heightPixels);
         sceneBuffer->colorTexture->bind(0, postProcessingShader, "scene");
         glDisable(GL_DEPTH_TEST);
         Mesh::getQuad()->render();

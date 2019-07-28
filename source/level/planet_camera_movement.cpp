@@ -7,7 +7,7 @@ PlanetCameraMovement::PlanetCameraMovement(PerspectiveCamera *cam, Planet *plt) 
 }
 
 const double DRAG_UPDATE_STEP = 1. / 60.;
-const int DRAG_BUTTON = GLFW_MOUSE_BUTTON_LEFT;
+const int DRAG_BUTTON = GLFW_MOUSE_BUTTON_MIDDLE;
 
 void PlanetCameraMovement::update(double deltaTime)
 {
@@ -55,7 +55,10 @@ void PlanetCameraMovement::update(double deltaTime)
     lat = max(0.f, min(180.f, lat));
 
     zoom = min(1. , max(0., zoom + MouseInput::yScroll * .15));
+    float prevActualZoom = actualZoom;
     actualZoom = actualZoom * (1. - deltaTime * 10.) + zoom * deltaTime * 10.;
+
+    zoomVelocity = abs(prevActualZoom - actualZoom) / deltaTime;
 
     cam->position = mu::Y * vec3(20. + 200 * (1. - actualZoom));
     cam->position.z += actualZoom * 20.;
@@ -112,8 +115,8 @@ void PlanetCameraMovement::dragUpdate()
     if (lessAccurateMethod)
     {
         accurateDraggingStarted = false;
-        lon -= MouseInput::deltaMouseX * .15;
-        lat -= MouseInput::deltaMouseY * .15;
+        lon -= MouseInput::deltaMouseX * .13;
+        lat -= MouseInput::deltaMouseY * .13;
     }
     dragHistory.push(vec2(lon, lat));
     if (dragHistory.size() > 10)
