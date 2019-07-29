@@ -120,7 +120,7 @@ void normalAndHeight(out vec3 normalDetailed, out vec3 normal, out float height,
     float s10 = seaHeightSphere(off.yx);
     float s12 = seaHeightSphere(off.yz);
     
-    vec2 sizeDetailed = vec2(.15 - .09 * detail, 0.); // .06
+    vec2 sizeDetailed = vec2(.15 - .07 * detail, 0.); // .06
     vec3 va = normalize(vec3(sizeDetailed.xy, s21 - s01));
     vec3 vb = normalize(vec3(sizeDetailed.yx, s12 - s10));
 
@@ -199,12 +199,12 @@ void foamAndWaves(inout vec3 normal, inout vec3 normalDetailed, vec2 screenCoord
 
 void underwater(float seaDepth, vec3 normal, vec2 screenCoords, float visibility)
 {
-    vec2 dudv = normal.xy * .06;
+    vec2 dudv = normal.xy * .15;
     vec2 distortedScreenCoords = screenCoords + dudv;
     distortedScreenCoords.x = max(0.01, min(.99, distortedScreenCoords.x));
     distortedScreenCoords.y = max(0.01, min(.99, distortedScreenCoords.y));
 
-    float distortion = min(1., seaDepth);
+    float distortion = min(1., seaDepth + .3);
     vec3 underWaterColor = texture(underwaterTexture, distortedScreenCoords * distortion + screenCoords * (1. - distortion)).rgb;
     if (all(greaterThan(underWaterColor, vec3(.01))))
     {
@@ -287,5 +287,5 @@ void main()
     color.rgb += specular(normalDetailed, seaHeight, detail);
 
     // fade edges:
-    color.a = seaDepth * 4.;
+    color.a = seaDepth * 8.;
 }

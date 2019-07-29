@@ -59,7 +59,7 @@ void addGrass(Island *isl)
         {
             if (isl->vertexPositionsOriginal[isl->xyToVertI(x, y)].y < 0) continue;
 
-            int maxDist = 1 + (int)(10 * abs(noise.GetNoise(x * 3, y * 3)));
+            int maxDist = 1 + (int)(30 * abs(noise.GetNoise(x * 6, y * 6)));
             float dist = max(0.0f, isl->distToHeight(x, y, -100, 0, maxDist + 3) - 3);
             isl->textureMap[isl->xyToVertI(x, y)][0] = Interpolation::powOut(dist / maxDist, 2);
         }

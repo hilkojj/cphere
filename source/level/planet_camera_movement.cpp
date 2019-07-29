@@ -54,14 +54,14 @@ void PlanetCameraMovement::update(double deltaTime)
     lon = mod(lon, 360.f);
     lat = max(0.f, min(180.f, lat));
 
-    zoom = min(1. , max(0., zoom + MouseInput::yScroll * .15));
+    zoom = min(1. , max(0., zoom + MouseInput::yScroll * .08));
     float prevActualZoom = actualZoom;
     actualZoom = actualZoom * (1. - deltaTime * 10.) + zoom * deltaTime * 10.;
 
     zoomVelocity = abs(prevActualZoom - actualZoom) / deltaTime;
 
-    cam->position = mu::Y * vec3(20. + 200 * (1. - actualZoom));
-    cam->position.z += actualZoom * 20.;
+    cam->position = mu::Y * vec3(5. + 200 * (1. - actualZoom));
+    cam->position.z += actualZoom * 15.;
 
     cam->lookAt(mu::ZERO_3, -mu::Z);
 
@@ -95,7 +95,6 @@ void PlanetCameraMovement::dragUpdate()
         float actualLon = mod(270 - cursorLonLat.x, 360.f);
         float lonDiff = abs(actualLon - lon);
         lonDiff = min(lonDiff, 360 - lonDiff);
-        std::cout << lonDiff << "\n";
         if (lonDiff < 90 && cursorLonLat.y > 15 && cursorLonLat.y < 165)
         {
             float deltaLon = cursorLonLat.x - dragLon,

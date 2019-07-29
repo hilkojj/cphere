@@ -15,6 +15,8 @@ out vec4 v_texBlend;
 
 out vec3 v_sunDirTanSpace;
 
+out float v_dayLight;
+
 void main() {
     gl_Position = viewTrans * vec4(a_pos, 1);
     v_texCoord = a_texCoords * 4.;
@@ -31,5 +33,7 @@ void main() {
     );
 
     v_sunDirTanSpace = toTanSpace * sunDir;
+
+    v_dayLight = clamp(dot(a_normal, sunDir), 0., 1.);
 
 }

@@ -8,6 +8,8 @@ in vec4 v_texBlend;
 
 in vec3 v_sunDirTanSpace;
 
+in float v_dayLight;
+
 out vec4 color;
 
 uniform vec3 sunDir;
@@ -26,10 +28,12 @@ void layer(int i, inout vec3 normal, inout vec4 color, inout float remainingA)
 
     if (i >= 0)
     {
-        float a0 = rgbAndHeight.a * (1. - a);
-        if (a < .1) a0 *= a * 5.;
-        a += a0;
-        if (a < 0.) a = 0.;
+        // float a0 = rgbAndHeight.a * (1. - a);
+        // if (a < .1) a0 *= a * 5.;
+        // a += a0;
+        // if (a < 0.) a = 0.;
+
+        a = a < rgbAndHeight.a ? a * 2. : 1.;
 
         a = min(remainingA, a);
     }
@@ -54,7 +58,11 @@ void main() {
     normal -= 1.;
 
     // light
-    float dayLight = dot(normal, v_sunDirTanSpace) * .3 + .7;
-    color.rgb *= dayLight;
+    float diffuseLight = dot(normal, v_sunDirTanSpace) + .1;
+    float normalMapEffect = clamp(v_dayLight - .3, 0., 1.);
+    diffuseLight = (diffuseLight * .3 + .7) * (1. - normalMapEffect) + normalMapEffect * diffuseLight;
+    color.rgb *= diffuseLight;
+
+    // color.rgb = vec3(v_dayLight);
 }
 

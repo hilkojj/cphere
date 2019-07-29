@@ -68,7 +68,7 @@ void SpaceRenderer::renderBox(const vec3 &sunDir, const Camera &cam)
 const LensFlare SpaceRenderer::flares[] = {
     {4, vec4(1), 1, 1, false},
 
-    {1, vec4(1, 1, 1, .25), 1, -1, true},
+    {1, vec4(1, 1, 1, .35), 1, -.8, true},
 
     {3, vec4(.7, .8, .9, .05), .25, -1.6, false},
     {3, vec4(.9, .8, .4, .1), .38, -1.5, false},
@@ -126,7 +126,7 @@ void SpaceRenderer::renderSun(const vec3 &sunDir, const Camera &cam, SharedTextu
 
     for (int i = 0; i < steps; i++)
     {
-        vec3 sd = rotate(sunDir, (float) (.02 * (((float) i - steps * .5) / steps)), mu::Y);
+        vec3 sd = rotate(sunDir, (float) (.05 * (((float) i - steps * .5) / steps)), mu::Y);
         vec3 sunPos = cam.position + sd;
 
         bool inViewport = false;
@@ -136,6 +136,7 @@ void SpaceRenderer::renderSun(const vec3 &sunDir, const Camera &cam, SharedTextu
             lensFlareA -= 1.0 / steps;
 
     }
+    lensFlareA = pow(lensFlareA, 2.);
     lensFlareA = lensFlareAlpha = (lensFlareA + lensFlareAlpha) * .5;
 
     vec2 screenSunPos = cam.project(cam.position + sunDir);

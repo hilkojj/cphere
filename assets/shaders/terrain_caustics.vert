@@ -14,5 +14,5 @@ out vec2 v_texCoord;
 void main() {
     gl_Position = viewTrans * vec4(a_pos, 1);
     v_normal = a_normal;
-    v_texCoord = a_texCoords;
+    v_texCoord = a_texCoords * 4.;
 }
