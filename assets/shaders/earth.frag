@@ -27,7 +27,7 @@ const float pole = .2, poleMargin = .1, near = .1, far = 1000.;
 
 float clamp1(float x)
 {
-    return clamp(x, 0, 1);
+    return max(min(1., x), 0.);
 }
 
 /**
@@ -112,7 +112,7 @@ float seaHeightSphere(vec2 off)
 
 void normalAndHeight(out vec3 normalDetailed, out vec3 normal, out float height, float detail)
 {
-    const vec3 off = vec3(-.02, 0, .02);
+    const vec3 off = vec3(-.03, 0, .03);
     // https://stackoverflow.com/questions/5281261/generating-a-normal-map-from-a-height-map
     float s11 = height = seaHeightSphere(vec2(0));
     float s01 = seaHeightSphere(off.xy);
@@ -145,7 +145,7 @@ vec3 specular(vec3 normal, float seaHeight, float detail)
 
     vec3 reflectDir = reflect(sunDirrrr, normallll * v_fromTanSpace);
     float specular = dot(reflectDir, normalize(v_toCamera));
-    specular = clamp(specular, 0, 1);
+    specular = clamp1(specular);
     float dampedSpec = pow(specular, 200.);
     return dampedSpec * vec3(1., .95, .9);
 }
@@ -162,7 +162,7 @@ void foamAndWaves(inout vec3 normal, inout vec3 normalDetailed, vec2 screenCoord
 
     if (waveHeight > 0.)
     {
-        const ivec3 off = ivec3(-10, 0, 10);
+        const ivec3 off = ivec3(-7, 0, 7); // 7 is max on most devices
         vec2 size = vec2(1.2, 0.0);
         // https://stackoverflow.com/questions/5281261/generating-a-normal-map-from-a-height-map
         float s11 = waveHeight;
@@ -175,25 +175,26 @@ void foamAndWaves(inout vec3 normal, inout vec3 normalDetailed, vec2 screenCoord
         vec3 vb = normalize(vec3(size.yx, s12 - s10));
 
         waveNormal = cross(va, vb);
-        float waveFactor = clamp1(max(0., normal.x + normal.y) * 10. + .5);
 
         foam += waveHeight;
         
-        waveFactor *= clamp1(min(screenCoords.x, 1. - screenCoords.x) / .05);
-
-        normal.xy += waveNormal.xy * 1.2 * pow(waveHeight, 1.1) * detail;
-        normal = normalize(normal);
+        normal.xy += waveNormal.xy * 2. * detail;
+        normal = waveNormal;//normalize(normal);
 
         normalDetailed.xy += waveNormal.xy * 2. * waveHeight * detail;
         normalDetailed = normalize(normalDetailed);
     }
+    // foam = 1.;
 
     if (foam > .0)
     {
-        foam *= seaHeight;
+        // foam *= seaHeight * 2. - 1.;
+        // foam = clamp1(foam);
 
-        foam *= sampleTex(foamTexture, waveNormal.xy * .02 + normal.xy * .03, y, 120.).r;
-        color.rgb += foam;
+        float foamColor = 1.;
+        foamColor += sampleTex(foamTexture, normal.xy * .01, y, 100.).r;
+        foamColor *= sampleTex(foamTexture, normal.xy * .01 + time * .01, y, 200.).r;
+        // color.rgb += foam * foamColor;
     }
 }
 
@@ -211,9 +212,9 @@ void underwater(float seaDepth, vec3 normal, vec2 screenCoords, float visibility
         float underwaterFactor = max(0., (4. - seaDepth) / 4.);
 
         vec3 blueish = vec3(underWaterColor.r + underWaterColor.g + underWaterColor.b) / 3.;
-        blueish *= normalize(vec3(.16, .8, 1));
+        blueish *= normalize(vec3(.1, 1., 1.));
 
-        float blueFactor = clamp(underwaterFactor - .1, 0, 1);
+        float blueFactor = clamp1(underwaterFactor - .1);
         underWaterColor *= blueFactor;
         underWaterColor += blueish * (1. - blueFactor);
         underwaterFactor *= visibility;
@@ -270,9 +271,6 @@ void main()
     // daylight:
     float daylight = clamp1(dot(vec3(0, 0, 1), v_sunDirTanSpace) + .4);
 
-    // shore (and boat-wake?) waves+foam:
-    foamAndWaves(normal, normalDetailed, screenCoords, detail, seaHeight, seaDepth);
-
     // diffuse light:
     float lambertTerm = clamp1(dot(normal, v_sunDirTanSpace));
     color.rgb *= lambertTerm * .4 + .6;
@@ -283,9 +281,14 @@ void main()
     // underwater:
     underwater(seaDepth, normal, screenCoords, clamp1(1. - fresnel - clamp1(.1 - detail)));
 
+
+    // shore (and boat-wake?) waves+foam:
+    foamAndWaves(normal, normalDetailed, screenCoords, detail, seaHeight, seaDepth);
+
+
     // specular:
     color.rgb += specular(normalDetailed, seaHeight, detail);
 
     // fade edges:
-    color.a = seaDepth * 8.;
+    color.a = seaDepth * 5.;
 }

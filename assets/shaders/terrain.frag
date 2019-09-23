@@ -43,6 +43,7 @@ void layer(int i, inout vec3 normal, inout vec4 color, inout float remainingA)
 }
 
 void main() {
+    // discard;
     float remainingA = 1.;
 
     color = vec4(0, 0, 0, 1);

@@ -14,6 +14,7 @@ uniform float time;
 const float near = .1, far = 1000.;
 
 void main() {
+    // discard;
 
     color = texture(terrainTexture, v_texCoord);
 

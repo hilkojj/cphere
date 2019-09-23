@@ -23,7 +23,7 @@ class PlanetCameraMovement
     PerspectiveCamera *cam;
     Planet *plt;
 
-    float lon = 0, lat = 90, zoom = 0, actualZoom = 0;
+    float lon = 160, lat = 75, zoom = 0, actualZoom = 0;
 
     float dragLon = 0, dragLat = 0, dragUpdateAccumulator = 0, afterDragTimer;
     bool accurateDraggingStarted = false;

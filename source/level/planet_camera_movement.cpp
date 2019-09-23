@@ -7,7 +7,7 @@ PlanetCameraMovement::PlanetCameraMovement(PerspectiveCamera *cam, Planet *plt) 
 }
 
 const double DRAG_UPDATE_STEP = 1. / 60.;
-const int DRAG_BUTTON = GLFW_MOUSE_BUTTON_MIDDLE;
+const int DRAG_BUTTON = GLFW_MOUSE_BUTTON_LEFT;
 
 void PlanetCameraMovement::update(double deltaTime)
 {
@@ -20,11 +20,11 @@ void PlanetCameraMovement::update(double deltaTime)
         
         dragUpdateAccumulator += deltaTime;
 
-        while (dragUpdateAccumulator > DRAG_UPDATE_STEP)
-        {
-            dragUpdate();
-            dragUpdateAccumulator -= DRAG_UPDATE_STEP;
-        }
+//        while (dragUpdateAccumulator > DRAG_UPDATE_STEP)
+//        {
+        dragUpdate();
+//            dragUpdateAccumulator -= DRAG_UPDATE_STEP;
+//        }
     }
     else
     {

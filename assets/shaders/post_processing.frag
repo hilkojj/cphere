@@ -29,7 +29,7 @@ void main()
         {
             float effect = 1. - float(i) / float(steps);
             div += effect;
-            color += texture(scene, v_texCoords - mbOffset * .05 * zoomEffect * (float(i) / float(steps))) * effect;
+            color += texture(scene, v_texCoords - mbOffset * .09 * zoomEffect * (float(i) / float(steps))) * effect;
         }
         color /= div;
     }

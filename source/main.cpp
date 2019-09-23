@@ -3,6 +3,8 @@
 #include "gu/game_utils.h"
 #include "level_screen.cpp"
 
+#include "../external/ctpl_stl.h"
+
 int main(int argc, char *argv[])
 {
     gu::Config config = {};
@@ -11,25 +13,33 @@ int main(int argc, char *argv[])
     #ifdef EMSCRIPTEN
     config.vsync = true;
     #endif
-    config.vsync = true;
+    // config.vsync = true;
 
     if (!gu::init(config))
         return -1;
 
-    bool load = false;
     char *path = NULL;
     for (int i = 0; i < argc; i++)
-    {
         if (std::string(argv[i]) == "-s")
-        {
-            load = true;
             path = argv[i + 1];
-        }
-    }
 
-    LevelScreen s(load, path);
+    LocalServer svr({Planet("earth", Sphere(150.))}, path);
+
+    LevelScreen s(&svr);
     gu::setScreen(&s);
 
     gu::run();
     return 0;
 }
+
+
+/*
+
+
+| server update       | client update |
+                      | client update |
+                      | client update |
+| render clouds etc.  | render            |
+                
+
+*/

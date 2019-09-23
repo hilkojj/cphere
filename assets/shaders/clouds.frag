@@ -11,6 +11,7 @@ uniform sampler2D noiseTex;
 
 void main()
 {
+    // discard;
     float texA = textureLod(noiseTex, v_texCoords, 6. - 6. * opacity).r;
     texA *= opacity;
     texA *= 1. - length(v_pos);

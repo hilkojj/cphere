@@ -2,8 +2,9 @@
 #define SERIALIZATION_H
 
 #include <limits>
+#include <string.h>
 
-#include "glm/glm.hpp"
+#include "utils/math_utils.h"
 #include "utils/gu_error.h"
 
 namespace slz
