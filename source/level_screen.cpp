@@ -294,18 +294,31 @@ class LevelScreen : public Screen
         }
 
         vec2 mouseLonLat(0);
-        svr->level.earth.cursorToLonLat(&cam, mouseLonLat);
-
-        std::cout << to_string(mouseLonLat) << "\n";
+        bool mouseOnEarth = svr->level.earth.cursorToLonLat(&cam, mouseLonLat);
 
         Node nearestToMouse = seaGraph.nearest(mouseLonLat);
+
+        std::vector<Node> path;
+        glLineWidth(3.);
+        if (mouseOnEarth && seaGraph.findPath(vec2(0, 0), mouseLonLat, path))
+        {
+            std::cout << path.size() << "\n";
+
+            vec3 prev = path[0]->position;
+            for (auto &n : path)
+            {
+                lineRenderer.line(prev * float(1.02), n->position * float(1.02), mu::Y);
+                prev = n->position;
+            }
+        }
+        glLineWidth(1.);
 
         for (auto &n : seaGraph.nodes)
         {
             for (auto &n2 : n->connections)
             {
                 lineRenderer.line(
-                    n->position * float(1.01), n2->position * float(1.01), vec3(1, vec2(n->distToCoast / 5.))
+                    n->position * float(1.01), n2->position * float(1.01), vec3(1 - n->distToCoast / 5., .3, .8)
                 );
 
                 // std::cout << to_string(n->position) << " -> " << to_string(n2->position) << "\n";

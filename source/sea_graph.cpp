@@ -1,5 +1,6 @@
 
 #include "sea_graph.h"
+#include "utils/a_star_pathfinder.h"
 
 // todo make not hacky
 
@@ -241,4 +242,21 @@ Node SeaGraph::nearest(const vec2 &lonLat) const
         }
     }
     return nearest;
+}
+
+bool SeaGraph::findPath(const vec2 &lonLat0, const vec2 &lonLat1, std::vector<Node> &path) const
+{
+    Node begin = nearest(lonLat0), goal = nearest(lonLat1);
+
+    std::cout << to_string(begin->lonLat) << "\n";
+    std::cout << to_string(goal->lonLat) << "\n";
+
+    return findAStarPath<Node>(
+        begin, goal,
+        [&](Node &n) { return length(n->position - goal->position); },
+        [](Node &n0, Node &n1) { return float(1); },
+        [](Node &n) -> std::vector<Node>& { return n->connections; },
+
+        path
+    );
 }
