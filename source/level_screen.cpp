@@ -20,7 +20,7 @@
 #include "glm/gtx/transform.hpp"
 #include "glm/gtx/rotate_vector.hpp"
 
-#include "graph.h"
+#include "sea_graph.h"
 
 #include "server_client/server.h"
 
@@ -55,7 +55,7 @@ class LevelScreen : public Screen
     SpaceRenderer spaceRenderer;
     CloudRenderer cloudRenderer;
 
-    Graph graph;
+    SeaGraph seaGraph;
 
     float time = 0;
 
@@ -77,6 +77,8 @@ class LevelScreen : public Screen
               "assets/textures/tc_grass.dds",
               "assets/textures/tc_grass_dead.dds",
           })),
+
+          seaGraph(&svr->level.earth),
 
           earthShader(ShaderProgram::fromFiles("EarthShader", "assets/shaders/earth.vert", "assets/shaders/earth.frag")),
           atmosphereShader(ShaderProgram::fromFiles("EarthAtmosphereShader", "assets/shaders/earth_atmosphere.vert", "assets/shaders/earth_atmosphere.frag")),
@@ -109,8 +111,6 @@ class LevelScreen : public Screen
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
         MouseInput::setLockedMode(!camPlanetMode);
-
-        graph.makeIcoGraph(5, EARTH_RADIUS + 3);
     }
 
     void render(double deltaTime)
@@ -293,16 +293,25 @@ class LevelScreen : public Screen
             );
         }
 
-        for (auto &n : graph.nodes)
+        vec2 mouseLonLat(0);
+        svr->level.earth.cursorToLonLat(&cam, mouseLonLat);
+
+        std::cout << to_string(mouseLonLat) << "\n";
+
+        Node nearestToMouse = seaGraph.nearest(mouseLonLat);
+
+        for (auto &n : seaGraph.nodes)
         {
             for (auto &n2 : n->connections)
             {
                 lineRenderer.line(
-                    n->position, n2->position, mu::X
+                    n->position * float(1.01), n2->position * float(1.01), vec3(1, vec2(n->distToCoast / 5.))
                 );
 
                 // std::cout << to_string(n->position) << " -> " << to_string(n2->position) << "\n";
             }
+            if (n == nearestToMouse)
+                lineRenderer.line(n->position, n->position * float(1.1), mu::Z);
         }
 
         sceneBuffer->unbind();

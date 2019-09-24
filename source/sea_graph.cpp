@@ -1,16 +1,15 @@
 
-#include "graph.h"
+#include "sea_graph.h"
 
 // todo make not hacky
 
-Node_::Node_(vec3 pos) : position(pos), lonLat(
-    vec2(
-        mu::RAD_TO_DEGREES * std::atan2(pos.z, pos.x) + 180.0f,
-
-        mu::RAD_TO_DEGREES * glm::acos(pos.y)
-    )
-)
+Node_::Node_(vec3 pos) : position(pos)
 {
+}
+
+SeaGraph::SeaGraph(Planet *plt) : plt(plt) {
+    makeIcoGraph(5);
+    cutOutIslands();
 }
 
 int getMiddlePoint(std::map<std::pair<int, int>, int> &cache, std::vector<Node> &nodes, int n0i, int n1i)
@@ -24,6 +23,8 @@ int getMiddlePoint(std::map<std::pair<int, int>, int> &cache, std::vector<Node> 
     Node n0 = nodes[n0i], n1 = nodes[n1i];
 
     Node splitted = Node(new Node_((n0->position + n1->position) / vec3(2.)));
+
+    splitted->distToCoast = (n0->distToCoast + n1->distToCoast) / 2.;
 
     vec3 p = splitted->position;
     nodes.push_back(splitted);
@@ -49,7 +50,7 @@ void createConnection(std::map<std::pair<int, int>, bool> &connectionCreated, st
     n1->connections.push_back(n0);
 }
 
-void Graph::makeIcoGraph(int subs, float radius)
+void SeaGraph::makeIcoGraph(int subs)
 {
 
     double t = (1.0 + glm::sqrt(5.)) / 2.;
@@ -99,11 +100,25 @@ void Graph::makeIcoGraph(int subs, float radius)
 
     for (int i = 0; i < subs; i++)
     {
+        bool finalStep = i == (subs - 1);
+        if (finalStep)
+        {
+            correctNodePositions();
+            createConnections(tris);
+            calcDistToCoast();
+        }
+
         std::vector<ivec3> newTris;
 
         for (auto &tri : tris)
         {
             Node p0 = nodes[tri.x], p1 = nodes[tri.y], p2 = nodes[tri.z];
+
+            if (finalStep && p0->distToCoast > 2)
+            {
+                newTris.push_back(tri);
+                continue;
+            }
 
             int a = getMiddlePoint(cache, nodes, tri.x, tri.y);
             int b = getMiddlePoint(cache, nodes, tri.y, tri.z);
@@ -117,10 +132,89 @@ void Graph::makeIcoGraph(int subs, float radius)
         tris = newTris;
     }
 
-
     // icosphere done
 
-    // create connections
+    for (auto &n : nodes) n->connections.clear();
+    createConnections(tris);
+
+    correctNodePositions();
+    calcDistToCoast();
+}
+
+void SeaGraph::correctNodePositions()
+{
+    for (auto &n : nodes)
+    {
+        vec3 &p = n->position;
+        double length = sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
+        n->position /= length;
+
+        n->position *= plt->sphere.radius;
+    }
+    calcNodesLonLat();
+}
+
+void SeaGraph::cutOutIslands()
+{
+    for (int i = nodes.size() - 1; i >= 0; i--)
+    {
+        auto &n = nodes[i];
+        // check if n is in island
+        if (n->distToCoast > 0) continue;
+
+        n->removed = true;
+        nodes[i] = nodes.back();
+        nodes.pop_back();
+    }
+    for (auto &n : nodes)
+    {
+        for (int i = n->connections.size() - 1; i >= 0; i--)
+        {
+            if (n->connections[i]->removed)
+            {
+                n->connections[i] = n->connections.back();
+                n->connections.pop_back();
+            }
+        }
+    }
+    std::cout << "Created sea-icosphere-network of size: " << nodes.size() << "\n";
+}
+
+void SeaGraph::calcNodesLonLat()
+{
+    for (auto &n : nodes)
+    {
+        n->lonLat.x = plt->longitude(n->position.x, n->position.z);
+        n->lonLat.y = plt->latitude(n->position.y);
+    }
+}
+
+void SeaGraph::calcDistToCoast()
+{
+    for (auto &n : nodes) n->distToCoast = 5;
+    for (auto &n : nodes)
+    {
+        Island *isl = plt->islAtLonLat(n->lonLat);
+        if (!isl) continue;
+
+        n->distToCoast = 0;
+        lowerDistToCoast(n, 4);
+    }
+}
+
+void SeaGraph::lowerDistToCoast(Node &n, int stepsLeft)
+{
+    if (stepsLeft == 0) return;
+    for (auto &nb : n->connections)
+    {
+        if (nb->distToCoast == 0) continue;
+        nb->distToCoast = min(5 - stepsLeft, nb->distToCoast);
+        lowerDistToCoast(nb, stepsLeft - 1);
+    }
+}
+
+void SeaGraph::createConnections(std::vector<ivec3> &tris)
+{
     std::map<std::pair<int, int>, bool> connectionCreated;
 
     for (auto &tri : tris)
@@ -129,14 +223,22 @@ void Graph::makeIcoGraph(int subs, float radius)
         createConnection(connectionCreated, nodes, tri.y, tri.z);
         createConnection(connectionCreated, nodes, tri.z, tri.x);
     }
+}
+
+Node SeaGraph::nearest(const vec2 &lonLat) const
+{
+    // todo: this is veeeery slow
+    Node nearest = NULL;
+    float nearestDist;
 
     for (auto &n : nodes)
     {
-        vec3 &p = n->position;
-        double length = sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
-        n->position /= length;
-
-        n->position *= radius;
+        float dist = length(n->lonLat - lonLat);
+        if (!nearest || dist < nearestDist)
+        {
+            nearest = n;
+            nearestDist = dist;
+        }
     }
-
+    return nearest;
 }

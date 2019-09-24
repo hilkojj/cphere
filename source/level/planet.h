@@ -37,6 +37,8 @@ class Planet
 
     Island *islUnderCursor(const Camera &cam);
 
+    Island *islAtLonLat(const vec2& lonLat) const;
+
     // must be called to delete islands. NOTE: is also called when planet generation restarts
     void destroyIslands();
 

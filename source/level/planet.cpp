@@ -84,6 +84,12 @@ Island *Planet::islUnderCursor(const Camera &cam)
     return NULL;
 }
 
+Island *Planet::islAtLonLat(const vec2& lonLat) const
+{
+    for (Island *isl : islands) if (isl->containsLonLatPoint(lonLat.x, lonLat.y)) return isl;
+    return NULL;
+}
+
 void Planet::toBinary(std::vector<uint8> &out) const
 {
     slz::add((uint8) islands.size(), out);
