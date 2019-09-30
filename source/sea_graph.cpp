@@ -244,19 +244,70 @@ Node SeaGraph::nearest(const vec2 &lonLat) const
     return nearest;
 }
 
-bool SeaGraph::findPath(const vec2 &lonLat0, const vec2 &lonLat1, std::vector<Node> &path) const
+bool SeaGraph::findPath(const vec2 &lonLat0, const vec2 &lonLat1, std::vector<WayPoint> &path) const
 {
+    static std::vector<Node> nodePath;
+    nodePath.clear();
     Node begin = nearest(lonLat0), goal = nearest(lonLat1);
 
-    std::cout << to_string(begin->lonLat) << "\n";
-    std::cout << to_string(goal->lonLat) << "\n";
-
-    return findAStarPath<Node>(
+    bool success = findAStarPath<Node>(
         begin, goal,
         [&](Node &n) { return length(n->position - goal->position); },
         [](Node &n0, Node &n1) { return float(1); },
         [](Node &n) -> std::vector<Node>& { return n->connections; },
 
-        path
+        nodePath
     );
+
+    int stepSize = 5;
+    for (int i = 0; i < (nodePath.size() - stepSize) / stepSize; i++)
+    {
+        std::vector<Node> subNodePath;
+        int ni = (nodePath.size() - stepSize) - stepSize * i;
+        auto &n = nodePath[ni];
+
+        bool success = findAStarPath<Node>(
+            begin, n,
+            [&](Node &n) { return length(n->position - n->position); },
+            [](Node &n0, Node &n1) { return float(1); },
+            [](Node &n) -> std::vector<Node>& { return n->connections; },
+
+            subNodePath
+        );
+        if (success && subNodePath.size() < ni - 2)
+        {
+            for (int j = ni + 1; j < nodePath.size(); j++)
+                subNodePath.push_back(nodePath[j]);
+            nodePath = subNodePath;
+        }
+    }
+
+    for (auto &n : nodePath) path.push_back({n, n->position, n->lonLat});
+
+    for (int i = 0; i < 10; i++)
+    {
+        for (int j = 1; j < path.size() - 1; j++)
+        {
+            auto &wp = path[j];
+            auto originalPos = wp.position;
+            auto originalLonLat = wp.lonLat;
+
+            auto &p = wp.position;
+            p = (path[j - 1].position + path[j + 1].position + p) / float(3);
+
+            double length = sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
+            p /= length;
+            p *= plt->sphere.radius;
+            wp.lonLat.x = plt->longitude(p.x, p.z);
+            wp.lonLat.y = plt->latitude(p.y);
+
+            if (wp.originalNode->distToCoast <= 2 && plt->islAtLonLat(wp.lonLat))
+            {
+                wp.lonLat = originalLonLat;
+                wp.position = originalPos;
+            }
+        }
+    }
+
+    return success;
 }

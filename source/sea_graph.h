@@ -26,6 +26,13 @@ class Node_
     Node_(vec3 pos);
 };
 
+struct WayPoint
+{
+    Node originalNode;
+    vec3 position;
+    vec2 lonLat;
+};
+
 class SeaGraph
 {
   public:
@@ -38,7 +45,7 @@ class SeaGraph
 
     Node nearest(const vec2 &lonLat) const;
 
-    bool findPath(const vec2 &lonLat0, const vec2 &lonLat1, std::vector<Node> &path) const;
+    bool findPath(const vec2 &lonLat0, const vec2 &lonLat1, std::vector<WayPoint> &path) const;
 
   private:
     void makeIcoGraph(int subs);

@@ -188,13 +188,13 @@ void foamAndWaves(inout vec3 normal, inout vec3 normalDetailed, vec2 screenCoord
 
     if (foam > .0)
     {
-        // foam *= seaHeight * 2. - 1.;
-        // foam = clamp1(foam);
+        foam *= seaHeight * 2. - 1.;
+        foam = clamp1(foam);
 
         float foamColor = 1.;
         foamColor += sampleTex(foamTexture, normal.xy * .01, y, 100.).r;
         foamColor *= sampleTex(foamTexture, normal.xy * .01 + time * .01, y, 200.).r;
-        // color.rgb += foam * foamColor;
+        color.rgb += foam * foamColor;
     }
 }
 

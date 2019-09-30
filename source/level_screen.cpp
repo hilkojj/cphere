@@ -19,6 +19,8 @@
 #include "utils/math/sphere_mesh_generator.h"
 #include "glm/gtx/transform.hpp"
 #include "glm/gtx/rotate_vector.hpp"
+#include "utils/json_model_loader.h"
+#include "level/graphics/ship_wake.h"
 
 #include "sea_graph.h"
 
@@ -37,7 +39,7 @@ class LevelScreen : public Screen
     Server *svr;
 
     // Planet earth;
-    ShaderProgram earthShader, causticsShader, terrainShader, atmosphereShader, postProcessingShader;
+    ShaderProgram earthShader, causticsShader, terrainShader, atmosphereShader, postProcessingShader, shipWakeShader;
 
     PerspectiveCamera cam;
     FlyingCameraController camController;
@@ -48,7 +50,9 @@ class LevelScreen : public Screen
     DebugLineRenderer lineRenderer;
     SharedTexture seaNormalMap, seaDUDV, caustics, sand, foamTexture, seaWaves;
     SharedTexArray terrainTextures;
-    SharedMesh atmosphereMesh;
+    SharedMesh atmosphereMesh, ship;
+
+    ShipWake shipWake;
 
     FrameBuffer underwaterBuffer, *sceneBuffer = NULL;
     WaveRenderer *waveRenderer;
@@ -85,6 +89,7 @@ class LevelScreen : public Screen
           causticsShader(ShaderProgram::fromFiles("CausticsShader", "assets/shaders/terrain_caustics.vert", "assets/shaders/terrain_caustics.frag")),
           terrainShader(ShaderProgram::fromFiles("TerrainShader", "assets/shaders/terrain.vert", "assets/shaders/terrain.frag")),
           postProcessingShader(ShaderProgram::fromFiles("PostProcessingShader", "assets/shaders/post_processing.vert", "assets/shaders/post_processing.frag")),
+          shipWakeShader(ShaderProgram::fromFiles("ShipWakeShader", "assets/shaders/ship_wake.vert", "assets/shaders/ship_wake.frag")),
 
           atmosphereMesh(SphereMeshGenerator::generate("earth_atmosphere", ATMOSPHERE_RADIUS, 50, 130, VertAttributes().add_(VertAttributes::POSITION).add_(VertAttributes::NORMAL))),
           cloudRenderer(&svr->level.earth),
@@ -109,6 +114,12 @@ class LevelScreen : public Screen
 
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        SharedModel model = JsonModelLoader::fromUbjsonFile("assets/models/cogship.ubj", &VertAttributes().add_(VertAttributes::POSITION).add_(VertAttributes::NORMAL))[0];
+        ship = model->parts[0].mesh;
+
+        VertBuffer::uploadSingleMesh(ship);
+
 
         MouseInput::setLockedMode(!camPlanetMode);
     }
@@ -188,7 +199,24 @@ class LevelScreen : public Screen
         // render waves to alpha channel of underwaterBuffer
         waveRenderer->render(newDeltaTime, cam.combined);
 
+        // vec3 rayDir = cam.getRayDirection(gu::width * .5, gu::height * .5);
+
+        // float yDiff = 0 - cam.position.y;
+
+        // float factor = yDiff / rayDir.y;
+
+        // vec3 shipPos = cam.position + rayDir * factor;
+
+        vec2 ll;
+        svr->level.earth.cursorToLonLat(&cam, ll);
+        vec3 shipPos = svr->level.earth.lonLatTo3d(ll.x, ll.y, 0);
+
+        shipWakeShader.use();
+        glUniformMatrix4fv(shipWakeShader.location("viewTrans"), 1, GL_FALSE, &(cam.combined[0][0]));
+        shipWake.render(lineRenderer, shipPos, newDeltaTime);
+
         underwaterBuffer.unbind();
+
         // DONE RENDERING UNDERWATER
 
         sceneBuffer->bind();
@@ -203,13 +231,14 @@ class LevelScreen : public Screen
         glUniform4f(terrainShader.location("terrainLayers"), 2, 3, 4, 5);
         glUniform4f(terrainShader.location("hasNormal"), 0, 0, 0, 0); // (background must have normal)
 
+        glUniformMatrix4fv(terrainShader.location("viewTrans"), 1, GL_FALSE, &(cam.combined[0][0]));
         for (auto isl : svr->level.earth.islands)
         {
-            glUniformMatrix4fv(terrainShader.location("viewTrans"), 1, GL_FALSE, &(cam.combined[0][0]));
             isl->terrainMesh->mode = isl == hoveredIsland ? GL_LINES : GL_TRIANGLES;
             isl->terrainMesh->render();
             isl->terrainMesh->mode = GL_TRIANGLES;
         }
+        ship->render();
         // DONE RENDERING ISLANDS
 
         // RENDER WATER:
@@ -229,7 +258,7 @@ class LevelScreen : public Screen
         svr->level.earth.mesh->render();
         // DONE RENDERING WATER
 
-        spaceRenderer.renderBox(sunDir, cam);
+        // spaceRenderer.renderBox(sunDir, cam);
 
         // RENDER ATMOSPHERE:
         atmosphereShader.use();
@@ -263,6 +292,8 @@ class LevelScreen : public Screen
         lineRenderer.line(glm::vec3(-300, 0, 0), glm::vec3(300, 0, 0), mu::X);
         lineRenderer.line(glm::vec3(0, -300, 0), glm::vec3(0, 300, 0), mu::Y);
         lineRenderer.line(glm::vec3(0, 0, -300), glm::vec3(0, 0, 300), mu::Z);
+
+        lineRenderer.line(shipPos, shipPos + vec3(0, 10, 0), mu::X);
 
         for (int i = 0; i < 100; i += 2)
             lineRenderer.line(sunDir * glm::vec3(i * 5), sunDir * glm::vec3((i + 1) * 5), glm::vec3(1, 1, 0));
@@ -298,31 +329,29 @@ class LevelScreen : public Screen
 
         Node nearestToMouse = seaGraph.nearest(mouseLonLat);
 
-        std::vector<Node> path;
+        std::vector<WayPoint> path;
         glLineWidth(3.);
         if (mouseOnEarth && seaGraph.findPath(vec2(0, 0), mouseLonLat, path))
         {
-            std::cout << path.size() << "\n";
-
-            vec3 prev = path[0]->position;
+            vec3 prev = path[0].position;
             for (auto &n : path)
             {
-                lineRenderer.line(prev * float(1.02), n->position * float(1.02), mu::Y);
-                prev = n->position;
+                lineRenderer.line(prev * float(1.005), n.position * float(1.005), mu::Y);
+                prev = n.position;
             }
         }
         glLineWidth(1.);
 
         for (auto &n : seaGraph.nodes)
         {
-            for (auto &n2 : n->connections)
-            {
-                lineRenderer.line(
-                    n->position * float(1.01), n2->position * float(1.01), vec3(1 - n->distToCoast / 5., .3, .8)
-                );
+            // for (auto &n2 : n->connections)
+            // {
+            //     lineRenderer.line(
+            //         n->position * float(1.01), n2->position * float(1.01), vec3(1 - n->distToCoast / 5., .3, .8)
+            //     );
 
-                // std::cout << to_string(n->position) << " -> " << to_string(n2->position) << "\n";
-            }
+            //     // std::cout << to_string(n->position) << " -> " << to_string(n2->position) << "\n";
+            // }
             if (n == nearestToMouse)
                 lineRenderer.line(n->position, n->position * float(1.1), mu::Z);
         }

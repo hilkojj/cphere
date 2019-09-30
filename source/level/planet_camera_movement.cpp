@@ -60,8 +60,8 @@ void PlanetCameraMovement::update(double deltaTime)
 
     zoomVelocity = abs(prevActualZoom - actualZoom) / deltaTime;
 
-    cam->position = mu::Y * vec3(5. + 200 * (1. - actualZoom));
-    cam->position.z += actualZoom * 15.;
+    cam->position = mu::Y * vec3(5. + 235 * (1. - actualZoom));
+    cam->position.z += actualZoom * 25.;
 
     cam->lookAt(mu::ZERO_3, -mu::Z);
 
