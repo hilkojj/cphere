@@ -39,7 +39,7 @@ class LevelScreen : public Screen
     Server *svr;
 
     // Planet earth;
-    ShaderProgram earthShader, causticsShader, terrainShader, atmosphereShader, postProcessingShader, shipWakeShader;
+    ShaderProgram earthShader, causticsShader, terrainShader, atmosphereShader, postProcessingShader, shipWakeShader, shipShader;
 
     PerspectiveCamera cam;
     FlyingCameraController camController;
@@ -48,7 +48,7 @@ class LevelScreen : public Screen
     bool camPlanetMode = true;
 
     DebugLineRenderer lineRenderer;
-    SharedTexture seaNormalMap, seaDUDV, caustics, sand, foamTexture, seaWaves;
+    SharedTexture seaNormalMap, seaDUDV, caustics, sand, foamTexture, seaWaves, shipTexture;
     SharedTexArray terrainTextures;
     SharedMesh atmosphereMesh, ship;
 
@@ -71,6 +71,7 @@ class LevelScreen : public Screen
           caustics(Texture::fromDDSFile("assets/textures/tc_caustics.dds")),
           sand(Texture::fromDDSFile("assets/textures/tc_sand.dds")),
           foamTexture(Texture::fromDDSFile("assets/textures/tc_foam.dds")),
+          shipTexture(Texture::fromDDSFile("assets/textures/cogship.dds")),
 
           seaWaves(Texture::fromDDSFile("assets/textures/sea_waves.dds")),
 
@@ -90,6 +91,7 @@ class LevelScreen : public Screen
           terrainShader(ShaderProgram::fromFiles("TerrainShader", "assets/shaders/terrain.vert", "assets/shaders/terrain.frag")),
           postProcessingShader(ShaderProgram::fromFiles("PostProcessingShader", "assets/shaders/post_processing.vert", "assets/shaders/post_processing.frag")),
           shipWakeShader(ShaderProgram::fromFiles("ShipWakeShader", "assets/shaders/ship_wake.vert", "assets/shaders/ship_wake.frag")),
+          shipShader(ShaderProgram::fromFiles("ShipShader", "assets/shaders/ship.vert", "assets/shaders/ship.frag")),
 
           atmosphereMesh(SphereMeshGenerator::generate("earth_atmosphere", ATMOSPHERE_RADIUS, 50, 130, VertAttributes().add_(VertAttributes::POSITION).add_(VertAttributes::NORMAL))),
           cloudRenderer(&svr->level.earth),
@@ -115,8 +117,10 @@ class LevelScreen : public Screen
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        SharedModel model = JsonModelLoader::fromUbjsonFile("assets/models/cogship.ubj", &VertAttributes().add_(VertAttributes::POSITION).add_(VertAttributes::NORMAL))[0];
+        SharedModel model = JsonModelLoader::fromUbjsonFile("assets/models/cogship.ubj", &VertAttributes().add_(VertAttributes::POSITION).add_(VertAttributes::TEX_COORDS).add_(VertAttributes::NORMAL))[0];
         ship = model->parts[0].mesh;
+
+        for (int i = 0; i < ship->nrOfVertices; i++) std::cout << to_string(ship->getVec2(i, ship->attributes.getOffset(VertAttributes::TEX_COORDS))) << "\n";
 
         VertBuffer::uploadSingleMesh(ship);
 
@@ -238,8 +242,12 @@ class LevelScreen : public Screen
             isl->terrainMesh->render();
             isl->terrainMesh->mode = GL_TRIANGLES;
         }
-        ship->render();
         // DONE RENDERING ISLANDS
+
+        shipShader.use();
+        glUniformMatrix4fv(shipShader.location("mvp"), 1, GL_FALSE, &(rotate(rotate(translate(cam.combined, vec3(0, 0, EARTH_RADIUS)), 90 * mu::DEGREES_TO_RAD, mu::X), 130 * mu::DEGREES_TO_RAD, mu::Y)[0][0]));
+        shipTexture->bind(0, shipShader, "shipTexture");
+        ship->render();
 
         // RENDER WATER:
         earthShader.use();
@@ -258,7 +266,7 @@ class LevelScreen : public Screen
         svr->level.earth.mesh->render();
         // DONE RENDERING WATER
 
-        // spaceRenderer.renderBox(sunDir, cam);
+        spaceRenderer.renderBox(sunDir, cam);
 
         // RENDER ATMOSPHERE:
         atmosphereShader.use();

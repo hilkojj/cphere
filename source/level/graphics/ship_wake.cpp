@@ -4,7 +4,7 @@
 
 #include <memory.h>
 
-const int NR_OF_LINES = 40;
+const int NR_OF_LINES = 100;
 
 ShipWake::ShipWake()
 {
@@ -60,7 +60,7 @@ void ShipWake::render(DebugLineRenderer &lineRenderer, vec3 &pos, double deltaTi
         }
         // memcpy(&mesh->vertices[2], &mesh->vertices[0], sizeof(float) * mesh->attributes.getVertSize() * (NR_OF_LINES - 1) * 2);
 
-        timeLeft = .1;
+        timeLeft = .03;
     }
     // set first line position to ship position
     mesh->setVec3(pos + dirTangent * vec3(.1), 0, 0);
