@@ -22,7 +22,7 @@ class SpaceRenderer
   public:
     SpaceRenderer();
 
-    void renderBox(const vec3 &sunDir, const Camera &cam);
+    void renderBox(const vec3 &sunDir, const Camera &cam, float zoom);
 
     void renderSun(const vec3 &sunDir, const Camera &cam, SharedTexture depth, float time, const Planet &plt);
 

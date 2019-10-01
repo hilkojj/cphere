@@ -19,6 +19,7 @@ uniform sampler2D foamTexture;
 uniform sampler2D seaWaves;
 uniform sampler2D underwaterTexture;
 uniform sampler2D underwaterDepthTexture;
+uniform sampler2D reflectionTexture;
 
 uniform float time;
 uniform vec2 scrSize;
@@ -157,7 +158,7 @@ void foamAndWaves(inout vec3 normal, inout vec3 normalDetailed, vec2 screenCoord
     // waves from heightmap:
     float waveHeight = 1. - texture(underwaterTexture, screenCoords).a;
 
-    float foam = clamp1(pow(clamp1((seaHeight - 1.23) * 6.), 5.));
+    float foam = clamp1(pow(clamp1((seaHeight - 1.23) * 8.), 3.));
     vec3 waveNormal = vec3(0, 0, 1);
 
     if (waveHeight > 0.)
@@ -225,7 +226,7 @@ void underwater(float seaDepth, vec3 normal, vec2 screenCoords, float visibility
     }
 }
 
-float fresnelReflection(vec3 normal, float detail, float daylight)
+float fresnelReflection(vec3 normal, float detail, float daylight, vec2 screenCoords)
 {
     float dayLightEffect = (1. - detail) * .7 + .3;
     vec3 reflectionColor = vec3(.5, .7, .9);
@@ -234,10 +235,13 @@ float fresnelReflection(vec3 normal, float detail, float daylight)
 
     reflectionColor *= detail * .2 + .8;
 
-    reflectionColor *= (1. - v_edge * pow(1. - detail, 5.)) * .5 + .5;
+    // reflectionColor *= (1. - v_edge * pow(1. - detail, 5.)) * .5 + .5;
+
+    vec3 refTexCol = texture(reflectionTexture, screenCoords).rgb;
+    reflectionColor += refTexCol;
 
     vec3 viewVector =  normalize(v_camPosTanSpace - normal);
-    float fr =  1.0 - dot(normal, viewVector);
+    float fr = 1.0 - dot(normal, viewVector);
     fr *= 2. * detail + 1.5;
     fr = clamp1(fr);
     color.rgb += reflectionColor * fr;
@@ -276,7 +280,7 @@ void main()
     color.rgb *= lambertTerm * .4 + .6;
 
     // reflection:
-    float fresnel = fresnelReflection(normal, detail, daylight);
+    float fresnel = fresnelReflection(normal, detail, daylight, screenCoords);
 
     // underwater:
     underwater(seaDepth, normal, screenCoords, clamp1(1. - fresnel - clamp1(.1 - detail)));
@@ -291,4 +295,6 @@ void main()
 
     // fade edges:
     color.a = seaDepth * 5.;
+
+    // color.rgb += texture(reflectionTexture, screenCoords).rgb;
 }

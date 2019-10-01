@@ -46,12 +46,13 @@ SpaceRenderer::SpaceRenderer()
     VertBuffer::uploadSingleMesh(cube);
 }
 
-void SpaceRenderer::renderBox(const vec3 &sunDir, const Camera &cam)
+void SpaceRenderer::renderBox(const vec3 &sunDir, const Camera &cam, float zoom)
 {
     glDisable(GL_BLEND);
     cubeMapShader.use();
     cubeMap->bind(0);
     glUniform1i(cubeMapShader.location("cubemap"), 0);
+    glUniform1f(cubeMapShader.location("zoomedIn"), zoom);
 
     mat4 view = rotate(cam.combined, (float) -atan2(sunDir.z, sunDir.x) + mu::PI * .5f, mu::Y);
 
