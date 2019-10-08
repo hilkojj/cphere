@@ -32,10 +32,6 @@ void WaveRenderer::createWavesForIsland(Island *isl)
         Polygon smoothed = Polygon(outline.points.size() / 3);
         for (int i = 0; i < smoothed.points.size(); i++)
             smoothed.points[i] = outline.points[i * 3];
-
-        // for (int x = 0; x < 2; x++)
-            for (int i = 1; i < smoothed.points.size() - 1; i++)
-                smoothed.points[i] = (smoothed.points[i - 1] + smoothed.points[i + 1]) / vec2(2);
         createWavesForOutline(islandWaves.back(), smoothed);
     }
 }

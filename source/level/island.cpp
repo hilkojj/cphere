@@ -32,7 +32,9 @@ Island::Island(const std::vector<uint8> &data, uint32 offs, Planet *plt)
     int nrOfOutlines = data.at(2 + offs);
     longitude = lonLatType::deserialize(data, 3 + offs);
     latitude = lonLatType::deserialize(data, 3 + lonLatType::size + offs);
-    int startI = 3 + lonLatType::size * 2 + offs;
+    seaBottom = vertType::deserialize(data, 3 + lonLatType::size * 2 + offs);
+
+    int startI = 3 + lonLatType::size * 2 + vertType::size + offs;
 
     vertType::deserializeVecs(data, startI, nrOfVerts, vertexPositionsOriginal, 0);
     assert(vertexPositionsOriginal.size() == nrOfVerts);
@@ -65,9 +67,13 @@ void Island::toBinary(std::vector<uint8> &out) const
 
     out.reserve(
         3 + // width, height, nr of outlines,
-        lonLatType::size * 2 +
+        lonLatType::size * 2 +  // lonlat
+
+        vertType::size + // seaBottom
+
         vertType::vecSize<vec3>() * nrOfVerts + // vertex positions
         texType::vecSize<vec4>() * nrOfVerts +  // texture map
+
         outlines2d.size() * 2 +     // nr of points per outline (uint16)
         outlineType::vecSize<vec2>() * nrOfOutlinePoints // outline points
     );
@@ -76,6 +82,7 @@ void Island::toBinary(std::vector<uint8> &out) const
     slz::add((uint8) outlines2d.size(), out);
     slz::add(lonLatType::serialize(longitude), out);
     slz::add(lonLatType::serialize(latitude), out);
+    slz::add(vertType::serialize(seaBottom), out);
 
     vertType::serializeVecs(vertexPositionsOriginal, out);
     texType::serializeVecs(textureMap, out);
@@ -103,10 +110,10 @@ int Island::vertIToY(int i)
 
 bool Island::tileAtSeaFloor(int x, int y)
 {
-    return vertexPositionsOriginal[xyToVertI(x, y)].y == seaBottom 
-        && vertexPositionsOriginal[xyToVertI(x + 1, y)].y == seaBottom 
-        && vertexPositionsOriginal[xyToVertI(x, y + 1)].y == seaBottom 
-        && vertexPositionsOriginal[xyToVertI(x + 1, y + 1)].y == seaBottom;
+    return vertexPositionsOriginal[xyToVertI(x, y)].y <= seaBottom + .1
+        && vertexPositionsOriginal[xyToVertI(x + 1, y)].y <= seaBottom + .1
+        && vertexPositionsOriginal[xyToVertI(x, y + 1)].y <= seaBottom + .1 
+        && vertexPositionsOriginal[xyToVertI(x + 1, y + 1)].y <= seaBottom + .1;
 }
 
 float Island::distToHeight(int x, int y, float minHeight, float maxHeight, int maxDist)
@@ -337,4 +344,12 @@ void Island::placeOnPlanet()
     planetTransform = transform;
     transformOutlines();
     calculateLatLonOutlines();
+}
+
+float Island::percentageUnderwater() const
+{
+    float p = 0.;
+    for (int i = 0; i < nrOfVerts; i++)
+        if (vertexPositionsOriginal[i].y < 0.) p += 1.;
+    return p / nrOfVerts;
 }

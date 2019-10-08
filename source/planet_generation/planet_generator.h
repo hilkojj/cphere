@@ -10,7 +10,7 @@
 #include "graphics/3d/model.h"
 #include "island_generator.h"
 
-#define IslandContextProvider std::function<IslandContext()>
+#define IslandContextProvider std::function<IslandContext(int islandNr)>
 
 struct IslandContext
 {

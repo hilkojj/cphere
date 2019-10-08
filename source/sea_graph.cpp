@@ -9,6 +9,11 @@ Node_::Node_(vec3 pos) : position(pos)
 }
 
 SeaGraph::SeaGraph(Planet *plt) : plt(plt) {
+}
+
+void SeaGraph::generate()
+{
+    nodes.clear();
     makeIcoGraph(5);
     cutOutIslands();
 }
@@ -283,6 +288,8 @@ bool SeaGraph::findPath(const vec2 &lonLat0, const vec2 &lonLat1, std::vector<Wa
     }
 
     for (auto &n : nodePath) path.push_back({n, n->position, n->lonLat});
+    path.back().position = plt->lonLatTo3d(lonLat1.x, lonLat1.y, 0.);
+    path.front().position = plt->lonLatTo3d(lonLat0.x, lonLat0.y, 0.);
 
     for (int i = 0; i < 10; i++)
     {

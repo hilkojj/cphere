@@ -2,7 +2,8 @@
 #include "input/mouse_input.h"
 #include "gu/game_utils.h"
 
-PlanetCameraMovement::PlanetCameraMovement(PerspectiveCamera *cam, Planet *plt) : cam(cam), plt(plt)
+PlanetCameraMovement::PlanetCameraMovement(PerspectiveCamera *cam, Planet *plt)
+    : cam(cam), plt(plt), slightlySmallerPlt("PltCamMovementPlt", Sphere(plt->sphere.radius - 10.))
 {
 }
 
@@ -85,8 +86,9 @@ void PlanetCameraMovement::dragUpdate()
 {
     bool lessAccurateMethod = false;
     vec2 cursorLonLat;
-    if (plt->cursorToLonLat(cam, cursorLonLat))
+    if (slightlySmallerPlt.cursorToLonLat(cam, cursorLonLat))
     {
+        plt->cursorToLonLat(cam, cursorLonLat);
         if (!accurateDraggingStarted)
         {
             dragLon = cursorLonLat.x;

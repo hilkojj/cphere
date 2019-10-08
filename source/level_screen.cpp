@@ -21,12 +21,13 @@
 #include "glm/gtx/rotate_vector.hpp"
 #include "utils/json_model_loader.h"
 #include "level/graphics/ship_wake.h"
+#include "planet_generation/earth_generator.h"
 
 #include "sea_graph.h"
 
-#include "server_client/server.h"
-
 #include "files/file.h"
+
+#include "entt.hpp"
 
 #include <fstream>
 
@@ -36,9 +37,8 @@ class LevelScreen : public Screen
 {
 
   public:
-    Server *svr;
-
-    // Planet earth;
+    entt::registry entts;
+    Planet earth;
     ShaderProgram earthShader, causticsShader, terrainShader, atmosphereShader, postProcessingShader, shipWakeShader, shipShader;
 
     PerspectiveCamera cam;
@@ -63,10 +63,9 @@ class LevelScreen : public Screen
 
     float time = 0;
 
-    LevelScreen(Server *svr)
-        : 
-          svr(svr),
-          cam(PerspectiveCamera(.1, 1000, 1, 1, 55)), camController(&cam), planetCamMovement(&cam, &svr->level.earth),
+    LevelScreen(const char *loadFilePath)
+        : earth("earth", Sphere(EARTH_RADIUS)),
+          cam(PerspectiveCamera(.1, 1000, 1, 1, 55)), camController(&cam), planetCamMovement(&cam, &earth),
           
           caustics(Texture::fromDDSFile("assets/textures/tc_caustics.dds")),
           sand(Texture::fromDDSFile("assets/textures/tc_sand.dds")),
@@ -83,7 +82,7 @@ class LevelScreen : public Screen
               "assets/textures/tc_grass_dead.dds",
           })),
 
-          seaGraph(&svr->level.earth),
+          seaGraph(&earth),
 
           earthShader(ShaderProgram::fromFiles("EarthShader", "assets/shaders/earth.vert", "assets/shaders/earth.frag")),
           atmosphereShader(ShaderProgram::fromFiles("EarthAtmosphereShader", "assets/shaders/earth_atmosphere.vert", "assets/shaders/earth_atmosphere.frag")),
@@ -94,7 +93,7 @@ class LevelScreen : public Screen
           shipShader(ShaderProgram::fromFiles("ShipShader", "assets/shaders/ship.vert", "assets/shaders/ship.frag")),
 
           atmosphereMesh(SphereMeshGenerator::generate("earth_atmosphere", ATMOSPHERE_RADIUS, 50, 130, VertAttributes().add_(VertAttributes::POSITION).add_(VertAttributes::NORMAL))),
-          cloudRenderer(&svr->level.earth),
+          cloudRenderer(&earth),
 
           underwaterBuffer(FrameBuffer(1024, 1024)),
           reflectionBuffer(FrameBuffer(512, 512))
@@ -107,7 +106,18 @@ class LevelScreen : public Screen
 
         VertBuffer::uploadSingleMesh(atmosphereMesh);
 
-        waveRenderer = new WaveRenderer(svr->level.earth);
+        if (loadFilePath)
+        {
+            auto earthBin = File::readBinary(loadFilePath);
+            earth.fromBinary(earthBin, [&]() {
+                return earthMeshGenerator(&earth);
+            });
+        }
+        else generateEarth(&earth);
+
+        seaGraph.generate();
+
+        waveRenderer = new WaveRenderer(earth);
         cam.position = glm::vec3(0, 0, 300);
         cam.lookAt(glm::vec3(0));
         cam.update();
@@ -123,11 +133,7 @@ class LevelScreen : public Screen
 
         SharedModel model = JsonModelLoader::fromUbjsonFile("assets/models/cogship.ubj", &VertAttributes().add_(VertAttributes::POSITION).add_(VertAttributes::TEX_COORDS).add_(VertAttributes::NORMAL))[0];
         ship = model->parts[0].mesh;
-
-        for (int i = 0; i < ship->nrOfVertices; i++) std::cout << to_string(ship->getVec2(i, ship->attributes.getOffset(VertAttributes::TEX_COORDS))) << "\n";
-
         VertBuffer::uploadSingleMesh(ship);
-
 
         MouseInput::setLockedMode(!camPlanetMode);
     }
@@ -137,22 +143,20 @@ class LevelScreen : public Screen
         double newDeltaTime =  deltaTime * (KeyInput::pressed(GLFW_KEY_KP_ADD) ? 15 : (KeyInput::pressed(GLFW_KEY_KP_SUBTRACT) ? 0 : 1));
         time += newDeltaTime;
 
-        svr->update(newDeltaTime);
-        svr->wait();
-        svr->updateClients(newDeltaTime);
-        svr->wait();
-        // if (KeyInput::justPressed(GLFW_KEY_R))
-        // {
-        //     svr->level.earth.destroyIslands();
-        //     svr->level.earth = Planet("earth", Sphere(EARTH_RADIUS));
-        //     generateEarth(&svr->level.earth);
-        //     delete waveRenderer;
-        //     waveRenderer = new WaveRenderer(svr->level.earth);
+        if (KeyInput::justPressed(GLFW_KEY_R))
+        {
+            earth.destroyIslands();
+            earth = Planet("earth", Sphere(EARTH_RADIUS));
+            generateEarth(&earth);
+            delete waveRenderer;
+            waveRenderer = new WaveRenderer(earth);
 
-        //     std::vector<uint8> data;
-        //     svr->level.earth.toBinary(data);
-        //     File::writeBinary("level.save", data);
-        // }
+            seaGraph.generate();
+
+            std::vector<uint8> data;
+            earth.toBinary(data);
+            File::writeBinary("level.save", data);
+        }
         ShaderProgram::reloadFromFile = int(time * 2.) % 2 == 0;//KeyInput::justPressed(GLFW_KEY_F5);
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -178,7 +182,7 @@ class LevelScreen : public Screen
 
         if (KeyInput::pressed(GLFW_KEY_G))
         {
-            hoveredIsland = svr->level.earth.islUnderCursor(cam);
+            hoveredIsland = earth.islUnderCursor(cam);
             if (hoveredIsland) hoveredIsland->tileUnderCursor(hoveredTile, cam);
         }
 
@@ -203,7 +207,7 @@ class LevelScreen : public Screen
         glUniform1f(causticsShader.location("time"), time);
         glUniform3f(causticsShader.location("sunDir"), sunDir.x, sunDir.y, sunDir.z);
 
-        for (auto isl : svr->level.earth.islands)
+        for (auto isl : earth.islands)
         {
             glUniformMatrix4fv(glGetUniformLocation(causticsShader.id(), "viewTrans"), 1, GL_FALSE, &cam.combined[0][0]);
             isl->terrainMesh->render();
@@ -217,8 +221,8 @@ class LevelScreen : public Screen
         waveRenderer->render(newDeltaTime, cam.combined);
 
         vec2 ll;
-        svr->level.earth.cursorToLonLat(&cam, ll);
-        vec3 shipPos = svr->level.earth.lonLatTo3d(ll.x, ll.y, 0);
+        earth.cursorToLonLat(&cam, ll);
+        vec3 shipPos = earth.lonLatTo3d(ll.x, ll.y, 0);
 
         shipWakeShader.use();
         glUniformMatrix4fv(shipWakeShader.location("viewTrans"), 1, GL_FALSE, &(cam.combined[0][0]));
@@ -268,7 +272,7 @@ class LevelScreen : public Screen
         glUniform4f(terrainShader.location("hasNormal"), 0, 0, 0, 0); // (background must have normal)
 
         glUniformMatrix4fv(terrainShader.location("viewTrans"), 1, GL_FALSE, &(cam.combined[0][0]));
-        for (auto isl : svr->level.earth.islands)
+        for (auto isl : earth.islands)
         {
             isl->terrainMesh->mode = isl == hoveredIsland ? GL_LINES : GL_TRIANGLES;
             isl->terrainMesh->render();
@@ -301,7 +305,7 @@ class LevelScreen : public Screen
         glUniform2f(earthShader.location("scrSize"), gu::widthPixels, gu::heightPixels);
         glUniform3f(earthShader.location("camPos"), cam.position.x, cam.position.y, cam.position.z);
         glUniform3f(earthShader.location("sunDir"), sunDir.x, sunDir.y, sunDir.z);
-        svr->level.earth.mesh->render();
+        earth.mesh->render();
         // DONE RENDERING WATER
 
         spaceRenderer.renderBox(sunDirZoomedOut, cam, planetCamMovement.actualZoom);
@@ -312,8 +316,8 @@ class LevelScreen : public Screen
         glEnable(GL_BLEND);
 
         mvp = glm::mat4(1.0f);
-        glm::vec3 cP = glm::normalize(cam.position) * svr->level.earth.sphere.radius;
-        float lon = svr->level.earth.longitude(cP.x, cP.z), lat = svr->level.earth.latitude(cP.y);
+        glm::vec3 cP = glm::normalize(cam.position) * earth.sphere.radius;
+        float lon = earth.longitude(cP.x, cP.z), lat = earth.latitude(cP.y);
         mvp = glm::rotate(mvp, -(lon + 90) * mu::DEGREES_TO_RAD, mu::Y);
         mvp = glm::rotate(mvp, lat * mu::DEGREES_TO_RAD, mu::X);
         mvp = cam.combined * mvp;
@@ -346,6 +350,7 @@ class LevelScreen : public Screen
 
         if (hoveredIsland)
         {
+            // std::cout << hoveredIsland->percentageUnderwater() << "\n";
             lineRenderer.line(
                 hoveredIsland->vertexPositionsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y)],
                 hoveredIsland->vertexPositionsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y)] + hoveredIsland->vertexNormalsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y)] * vec3(10),
@@ -371,7 +376,7 @@ class LevelScreen : public Screen
         }
 
         vec2 mouseLonLat(0);
-        bool mouseOnEarth = svr->level.earth.cursorToLonLat(&cam, mouseLonLat);
+        bool mouseOnEarth = earth.cursorToLonLat(&cam, mouseLonLat);
 
         Node nearestToMouse = seaGraph.nearest(mouseLonLat);
 
@@ -413,7 +418,7 @@ class LevelScreen : public Screen
         sceneBuffer->depthTexture->bind(1, postProcessingShader, "sceneDepth");
         glDisable(GL_DEPTH_TEST);
         Mesh::getQuad()->render();
-        spaceRenderer.renderSun(sunDir, cam, sceneBuffer->depthTexture, time, svr->level.earth);
+        spaceRenderer.renderSun(sunDir, cam, sceneBuffer->depthTexture, time, earth);
         glEnable(GL_DEPTH_TEST);
     }
 

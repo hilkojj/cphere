@@ -27,7 +27,6 @@ class Island
     Island(int width, int height, Planet *plt);
 
     // from binary:
-    // TODO: invisible/sea-level vertices are not removed.
     Island(const std::vector<uint8> &data, uint32 dataOffset, Planet *plt);
 
     ~Island();
@@ -51,6 +50,9 @@ class Island
     bool tileUnderCursor(ivec2 &out, const Camera &cam);
 
     bool containsTile(int x, int y) const;
+
+    // returns 0-1 based on amount of vertices that are underwater
+    float percentageUnderwater() const;
 
     std::vector<vec3>
         // normal per vertex in local space

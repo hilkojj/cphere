@@ -25,7 +25,7 @@ class PlanetCameraMovement
     void updateHorizonDistance();
 
     PerspectiveCamera *cam;
-    Planet *plt;
+    Planet *plt, slightlySmallerPlt; // slightlySmallerPlt is just a dummy planet with a smaller radius used in dragUpdate()
 
     float dragLon = 0, dragLat = 0, dragUpdateAccumulator = 0, afterDragTimer;
     bool accurateDraggingStarted = false;

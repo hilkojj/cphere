@@ -21,9 +21,9 @@ void PlanetGenerator::generate()
     while (!tryToGenerate())
     {
         std::cout << "Planet generation failed\n";
-        if (++failedTries > 10)
+        if (++failedTries > 3)
         {
-            std::cout << "nr of Islands is too high\n";
+            std::cout << "nr of Islands is too high!!!!\n\n\n";
             minNrOfIslands--;
             failedTries = 0;
         }
@@ -37,15 +37,15 @@ void PlanetGenerator::generate()
 
 bool PlanetGenerator::tryToGenerate()
 {
-    int maxTries = 10;
+    int maxTries = 50;
     int failedTries = 0;
 
     while (plt->islands.size() < nrOfIslands && failedTries < maxTries)
     {
-        auto context = islContextProvider();
+        auto context = islContextProvider(plt->islands.size());
         Island *isl = context.islandGenerator.generateEssentials();
 
-        if (placeOnPlanet(isl, context.minLatitude, context.maxLatitude))
+        if (isl->percentageUnderwater() < .87 && placeOnPlanet(isl, context.minLatitude, context.maxLatitude))
         {
             failedTries = 0;
             context.islandGenerator.finishGeneration();
@@ -67,7 +67,7 @@ bool PlanetGenerator::placeOnPlanet(Island *isl, float minLat, float maxLat)
         float lon = mu::random(360), lat = mu::random(minLat, maxLat);
 
         if (tryToPlaceOnPlanet(isl, lon, lat)) return true;
-        if (++failedTries >= 50) return false;
+        if (++failedTries >= 500) return false;
     }
 }
 

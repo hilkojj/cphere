@@ -3,7 +3,7 @@
 
 #include "files/file.h"
 #include "../planet_generation/earth_generator.h"
-
+/*
 Server::Server(Level level) : level(level)
 {}
 
@@ -48,3 +48,4 @@ void LocalServer::update(double deltaTime)
 
     done = true;
 }
+*/

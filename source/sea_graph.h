@@ -5,7 +5,7 @@
 #include <memory>
 
 #include "utils/math_utils.h"
-#include "level/level.h"
+#include "level/planet.h"
 
 struct Node_;
 
@@ -42,6 +42,8 @@ class SeaGraph
     SeaGraph(Planet *plt);
 
     std::vector<Node> nodes;
+
+    void generate();
 
     Node nearest(const vec2 &lonLat) const;
 

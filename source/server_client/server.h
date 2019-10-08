@@ -1,6 +1,6 @@
 #ifndef SERVER_H
 #define SERVER_H
-
+/*
 class Client;
 
 #include "../level/level.h"
@@ -36,5 +36,6 @@ class LocalServer : public Server
     void update(double deltaTime) override;
     
 };
+*/
 
 #endif

@@ -3,7 +3,7 @@
 #include "gu/game_utils.h"
 #include "level_screen.cpp"
 
-#include "../external/ctpl_stl.h"
+// #include "../external/ctpl_stl.h"
 
 int main(int argc, char *argv[])
 {
@@ -23,23 +23,9 @@ int main(int argc, char *argv[])
         if (std::string(argv[i]) == "-s")
             path = argv[i + 1];
 
-    LocalServer svr({Planet("earth", Sphere(150.))}, path);
-
-    LevelScreen s(&svr);
+    LevelScreen s(path);
     gu::setScreen(&s);
 
     gu::run();
     return 0;
 }
-
-
-/*
-
-
-| server update       | client update |
-                      | client update |
-                      | client update |
-| render clouds etc.  | render            |
-                
-
-*/

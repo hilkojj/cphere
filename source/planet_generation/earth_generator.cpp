@@ -114,10 +114,11 @@ void generateEarth(Planet *earth)
         earth,
 
         // Island context provider:
-        [&]() {
+        [&](int islandNumber) {
+            bool h = mu::random() > .5;
             return IslandContext{
                 IslandGenerator(
-                    mu::randomInt(100, 150), mu::randomInt(100, 150),
+                    mu::randomInt(100, h ? 150 : 250), mu::randomInt(100, h ? 250 : 150),
                     earth,
                     generateIslandTerrain,
                     islandTextureMapper),
@@ -125,7 +126,7 @@ void generateEarth(Planet *earth)
         },
 
         // nr of islands:
-        12,
+        16,
 
         // Earth mesh generator:
         [&]() {
