@@ -52,7 +52,7 @@ void main()
     pos *= .05; // scale
     gl_Position = (mvp * vec4(pos, 1));
     // fade out when camera comes too close:
-    opacity *= min(1., gl_Position.z * .1);
+    opacity *= min(1., gl_Position.z * .002);
     // fade the entire cloud in and out:
     opacity *= min(1., cloudOpacity * (1. + 8. * random(nr)));
 

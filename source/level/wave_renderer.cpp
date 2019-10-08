@@ -63,7 +63,7 @@ void WaveRenderer::createWavesForOutline(IslandWaves &islWaves, Polygon &outline
         offsetted.points[i] = outline.points[i] + normal * vec2(3.5);
     }
 
-    int nrOfWaves = nrOfPoints / 5;
+    int nrOfWaves = nrOfPoints / 2;
     for (int i = 0; i < nrOfWaves; i++)
     {
         for (int j = 0; j < 100; j++)
@@ -133,10 +133,10 @@ void WaveRenderer::render(double deltaTime, const glm::mat4 &view)
 
         for (auto &wave : islWaves.waves)
         {
-            if (wave.timer == 0 && mu::random() < .5 * deltaTime)
+            if (wave.timer == 0 && mu::random() < .7 * deltaTime)
             {
                 wave.timer = .0001;
-                wave.timeMultiplier = mu::random(.7, 1);
+                wave.timeMultiplier = mu::random(.4, 1);
             }
             if (wave.timer == 0) continue;
 

@@ -18,6 +18,7 @@ void main()
     // color = vec4(a * (1. - v_uv.y));
 
     a *= 1. - v_uv.y;
+    // a *= a;
 
     color = vec4(1, 1, 1, 1. - a);
 }

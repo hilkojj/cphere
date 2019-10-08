@@ -32,7 +32,7 @@ CloudRenderer::CloudRenderer(Planet *earth)
 void CloudRenderer::render(double time, double deltaTime, Camera &cam, vec3 sunDir)
 {
     if (clouds.size() == 0) deltaTime = 30;
-    while (clouds.size() < 30)
+    while (clouds.size() < 40)
         clouds.push_back({
             mu::random(360), // lon
             mu::random(mu::random() > .5 ? 40. : 0., mu::random() > .5 ? 120. : 180.), // lat
@@ -59,8 +59,8 @@ void CloudRenderer::render(double time, double deltaTime, Camera &cam, vec3 sunD
 
         cloud.lon += .7 * deltaTime * cloud.speed;
         cloud.lat += .4 * deltaTime * cloud.speed;
-        mat4 t = mat4(1);
-        t = rotate(t, cloud.lon * mu::DEGREES_TO_RAD, mu::Y);
+
+        mat4 t = rotate(mat4(1.), cloud.lon * mu::DEGREES_TO_RAD, mu::Y);
         t = rotate(t, cloud.lat * mu::DEGREES_TO_RAD, mu::X);
         t = translate(t, vec3(0, earth->sphere.radius + 35, 0));
 

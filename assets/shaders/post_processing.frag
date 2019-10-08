@@ -40,12 +40,9 @@ void main()
     depth = 2.0 * near * far / (far + near - (2.0 * depth - 1.0) * (far - near));
 
     float fog = max(0., min(1., (depth * .24 - 12.) * .1));
-    fog *= min(1., max(0., (zoom - .7) * 4.6));
+    fog *= min(1., max(0., (zoom - .72) * 4.6));
 
     if (depth > 200. && color.r + color.g + color.b > 1.85) fog = 0.;
-
-    // fog -= smoothstep(200., 500., depth);
-    // if (depth > 200.) fog = 0.;
 
     color.rgb *= 1. - fog;
     color.rgb += vec3(.4, .6, .9) * fog;

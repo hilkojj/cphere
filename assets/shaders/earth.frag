@@ -137,24 +137,15 @@ vec3 specular(vec3 normal, float seaHeight, float detail)
 {
     vec3 normallll = normal * .8 + vec3(0, 0, .2);
 
-    // fake the sun-direction so that the specular-effect can be seen at more places
-    float fakeDir = detail * .66;
-    vec3 sunDirrrr = vec3(0, 0, 1) * v_fromTanSpace;
-    sunDirrrr *= fakeDir;
-    sunDirrrr += sunDir * (1. - fakeDir);
-    sunDirrrr = normalize(sunDirrrr);
-
-    vec3 reflectDir = reflect(sunDirrrr, normallll * v_fromTanSpace);
+    vec3 reflectDir = reflect(sunDir, normallll * v_fromTanSpace);
     float specular = dot(reflectDir, normalize(v_toCamera));
     specular = clamp1(specular);
     float dampedSpec = pow(specular, 200.);
     return dampedSpec * vec3(1., .95, .9);
 }
 
-void foamAndWaves(inout vec3 normal, inout vec3 normalDetailed, vec2 screenCoords, float detail, float seaHeight, float seaDepth)
+float foamAndWaves(inout vec3 normal, inout vec3 normalDetailed, vec2 screenCoords, float detail, float seaHeight, float seaDepth)
 {
-    float y = v_texCoords.y;
-
     // waves from heightmap:
     float waveHeight = 1. - texture(underwaterTexture, screenCoords).a;
 
@@ -164,7 +155,7 @@ void foamAndWaves(inout vec3 normal, inout vec3 normalDetailed, vec2 screenCoord
     if (waveHeight > 0.)
     {
         const ivec3 off = ivec3(-7, 0, 7); // 7 is max on most devices
-        vec2 size = vec2(1.2, 0.0);
+        vec2 size = vec2(4., 0.0);
         // https://stackoverflow.com/questions/5281261/generating-a-normal-map-from-a-height-map
         float s11 = waveHeight;
         float s01 = 1. - textureOffset(underwaterTexture, screenCoords, off.xy).a;
@@ -177,30 +168,40 @@ void foamAndWaves(inout vec3 normal, inout vec3 normalDetailed, vec2 screenCoord
 
         waveNormal = cross(va, vb);
 
-        foam += waveHeight;
+        foam += pow(waveHeight, 2.);
         
-        normal.xy += waveNormal.xy * 2. * detail;
-        normal = waveNormal;//normalize(normal);
+        normal = waveNormal * waveHeight + normal * (1. - waveHeight);//normalize(normal);
 
-        normalDetailed.xy += waveNormal.xy * 2. * waveHeight * detail;
-        normalDetailed = normalize(normalDetailed);
+        normalDetailed = waveNormal * waveHeight + normalDetailed * (1. - waveHeight);//normalize(normal);
     }
-    // foam = 1.;
+    // foam = clamp1(foam + clamp1(1. - seaDepth * 4. + normalDetailed.x - seaHeight * seaHeight * .2));
+    return foam;
+}
 
+void applyFoam(float foam, vec3 normal)
+{
     if (foam > .0)
     {
-        foam *= seaHeight * 2. - 1.;
+        float y = v_texCoords.y;
+        float originalFoam = foam;
+
+        foam *= sampleTex(foamTexture, normal.xy * .05 + time * .01, y, 160.).r;
+        foam += sampleTex(foamTexture, normal.xy * .05 + time * -.2, y, 300.).r * (1. - foam) * originalFoam * originalFoam;
         foam = clamp1(foam);
 
-        float foamColor = 1.;
-        foamColor += sampleTex(foamTexture, normal.xy * .01, y, 100.).r;
-        foamColor *= sampleTex(foamTexture, normal.xy * .01 + time * .01, y, 200.).r;
-        color.rgb += foam * foamColor;
+        float blub = pow(foam, 1.5);
+        vec3 foamColor = vec3(.35, .45, .42) * (1. - blub) + blub;
+        float lambertTerm = clamp1(dot(normal, v_sunDirTanSpace)) * .6 + .4;
+
+        foamColor *= lambertTerm;
+        color.rgb *= 1. - foam;
+        color.rgb += foamColor * foam;
     }
 }
 
 void underwater(float seaDepth, vec3 normal, vec2 screenCoords, float visibility)
 {
+    seaDepth += .3;
     vec2 dudv = normal.xy * .15;
     vec2 distortedScreenCoords = screenCoords + dudv;
     distortedScreenCoords.x = max(0.01, min(.99, distortedScreenCoords.x));
@@ -210,7 +211,7 @@ void underwater(float seaDepth, vec3 normal, vec2 screenCoords, float visibility
     vec3 underWaterColor = texture(underwaterTexture, distortedScreenCoords * distortion + screenCoords * (1. - distortion)).rgb;
     if (all(greaterThan(underWaterColor, vec3(.01))))
     {
-        float underwaterFactor = max(0., (4. - seaDepth) / 4.);
+        float underwaterFactor = max(0., (4.3 - seaDepth) / 4.3);
 
         vec3 blueish = vec3(underWaterColor.r + underWaterColor.g + underWaterColor.b) / 3.;
         blueish *= normalize(vec3(.1, 1., 1.));
@@ -229,22 +230,25 @@ void underwater(float seaDepth, vec3 normal, vec2 screenCoords, float visibility
 float fresnelReflection(vec3 normal, float detail, float daylight, vec2 screenCoords)
 {
     float dayLightEffect = (1. - detail) * .7 + .3;
-    vec3 reflectionColor = vec3(.5, .7, .9);
+    vec3 reflectionColor = vec3(.3, .5, .6);
 
     reflectionColor *= daylight * dayLightEffect + (1. - dayLightEffect);
 
     reflectionColor *= detail * .2 + .8;
 
-    // reflectionColor *= (1. - v_edge * pow(1. - detail, 5.)) * .5 + .5;
-
-    vec3 refTexCol = texture(reflectionTexture, screenCoords).rgb;
-    reflectionColor += refTexCol;
-
     vec3 viewVector =  normalize(v_camPosTanSpace - normal);
     float fr = 1.0 - dot(normal, viewVector);
-    fr *= 2. * detail + 1.5;
+    fr *= 7. * detail + 1.;
     fr = clamp1(fr);
     color.rgb += reflectionColor * fr;
+
+    vec3 refTexCol = texture(reflectionTexture, screenCoords + normal.xy * .2).rgb;
+    float reflectionFactor = clamp1(clamp1(pow(fr * 20. + .4, 1.)) - .6);
+
+    reflectionFactor *= clamp1((detail - .25) * 5. + daylight * 2.);
+
+    color.rgb *= 1. - reflectionFactor;
+    color.rgb += reflectionFactor * refTexCol;
     return fr;
 }
 
@@ -279,22 +283,22 @@ void main()
     float lambertTerm = clamp1(dot(normal, v_sunDirTanSpace));
     color.rgb *= lambertTerm * .4 + .6;
 
+    // shore (and boat-wake?) waves+foam:
+    float foam = foamAndWaves(normal, normalDetailed, screenCoords, detail, seaHeight, seaDepth);
+    // foam = 1.;
+
     // reflection:
     float fresnel = fresnelReflection(normal, detail, daylight, screenCoords);
 
     // underwater:
     underwater(seaDepth, normal, screenCoords, clamp1(1. - fresnel - clamp1(.1 - detail)));
 
-
-    // shore (and boat-wake?) waves+foam:
-    foamAndWaves(normal, normalDetailed, screenCoords, detail, seaHeight, seaDepth);
-
+    applyFoam(foam, normal);
 
     // specular:
     color.rgb += specular(normalDetailed, seaHeight, detail);
 
     // fade edges:
-    color.a = seaDepth * 5.;
-
-    // color.rgb += texture(reflectionTexture, screenCoords).rgb;
+    color.a = seaDepth * 3. > normalDetailed.x ? 1. : .4;
+    color.a *= seaDepth * 10.;
 }

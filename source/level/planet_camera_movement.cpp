@@ -18,7 +18,7 @@ void PlanetCameraMovement::update(double deltaTime)
     {
         while (startDrag && !dragHistory.empty()) dragHistory.pop();
         
-        dragUpdateAccumulator += deltaTime;
+        // dragUpdateAccumulator += deltaTime;
 
 //        while (dragUpdateAccumulator > DRAG_UPDATE_STEP)
 //        {
@@ -59,6 +59,7 @@ void PlanetCameraMovement::update(double deltaTime)
     actualZoom = actualZoom * (1. - deltaTime * 10.) + zoom * deltaTime * 10.;
 
     zoomVelocity = abs(prevActualZoom - actualZoom) / deltaTime;
+    if (zoomVelocity > .0 || horizonDistance < 0.) updateHorizonDistance();
 
     cam->position = mu::Y * vec3(5. + 235 * (1. - actualZoom));
     cam->position.z += actualZoom * 25.;
@@ -126,5 +127,11 @@ vec2 PlanetCameraMovement::dragVelocity() const
 {
     if (dragHistory.size() == 0) return vec2(0);
     return Planet::deltaLonLat(dragHistory.front(), vec2(lon, lat)) / vec2(dragHistory.size());
+}
+
+
+void PlanetCameraMovement::updateHorizonDistance()
+{
+    horizonDistance = sqrt(pow(length(cam->position), 2) - pow(plt->sphere.radius, 2));
 }
 

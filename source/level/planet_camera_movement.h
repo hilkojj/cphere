@@ -16,10 +16,13 @@ class PlanetCameraMovement
 
     float zoomVelocity = 0;
     float lon = 160, lat = 75, zoom = 0, actualZoom = 0;
+    float horizonDistance = -1;
 
   private:
     void dragUpdate();
     vec2 dragVelocity() const;
+
+    void updateHorizonDistance();
 
     PerspectiveCamera *cam;
     Planet *plt;

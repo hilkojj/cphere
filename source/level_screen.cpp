@@ -30,7 +30,7 @@
 
 #include <fstream>
 
-const float EARTH_RADIUS = 150, ATMOSPHERE_RADIUS = 200;
+const float EARTH_RADIUS = 150, ATMOSPHERE_RADIUS = 198;
 
 class LevelScreen : public Screen
 {
@@ -216,14 +216,6 @@ class LevelScreen : public Screen
         // render waves to alpha channel of underwaterBuffer
         waveRenderer->render(newDeltaTime, cam.combined);
 
-        // vec3 rayDir = cam.getRayDirection(gu::width * .5, gu::height * .5);
-
-        // float yDiff = 0 - cam.position.y;
-
-        // float factor = yDiff / rayDir.y;
-
-        // vec3 shipPos = cam.position + rayDir * factor;
-
         vec2 ll;
         svr->level.earth.cursorToLonLat(&cam, ll);
         vec3 shipPos = svr->level.earth.lonLatTo3d(ll.x, ll.y, 0);
@@ -238,14 +230,16 @@ class LevelScreen : public Screen
 
         // RENDER WATER REFLECTIONS
         reflectionBuffer.bind();
-        glClearColor(0, 0, 0, 1);
+        glClearColor(.12, .15, .29, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+        float prevCamFar = cam.far_;
+        cam.far_ = planetCamMovement.horizonDistance - 10.;
+        cam.update();
 
         {
         shipShader.use();
         glUniform1i(shipShader.location("reflection"), 1);
-        auto worldTrans = rotate(rotate(translate(mat4(1), vec3(0, 0, EARTH_RADIUS - sin(time) * 3. - 1.5)), 90 * mu::DEGREES_TO_RAD, mu::X), 130 * mu::DEGREES_TO_RAD, mu::Y);
+        auto worldTrans = rotate(rotate(translate(mat4(1), vec3(0, 0, EARTH_RADIUS + sin(time) * 3. - 1.5)), 90 * mu::DEGREES_TO_RAD, mu::X), 130 * mu::DEGREES_TO_RAD, mu::Y);
 
         vec3 localSunDir = vec4(sunDir, 1) * worldTrans;
         glUniform3f(shipShader.location("sunDir"), localSunDir.x, localSunDir.y, localSunDir.z);
@@ -255,6 +249,8 @@ class LevelScreen : public Screen
         }
 
         reflectionBuffer.unbind();
+        cam.far_ = prevCamFar;
+        cam.update();
 
 
         // DONE RENDERING WATER REFLECTIONS
