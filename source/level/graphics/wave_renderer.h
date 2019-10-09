@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#include "planet.h"
+#include "../planet.h"
 #include "graphics/shader_program.h"
 
 struct Wave

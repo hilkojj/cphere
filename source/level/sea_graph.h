@@ -5,7 +5,7 @@
 #include <memory>
 
 #include "utils/math_utils.h"
-#include "level/planet.h"
+#include "planet.h"
 
 struct Node_;
 

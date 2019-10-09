@@ -4,10 +4,10 @@
 #include "graphics/texture.h"
 #include "graphics/texture_array.h"
 #include "level/planet.h"
-#include "level/wave_renderer.h"
-#include "level/space_renderer.h"
-#include "level/cloud_renderer.h"
-#include "level/planet_camera_movement.h"
+#include "level/graphics/wave_renderer.h"
+#include "level/graphics/space_renderer.h"
+#include "level/graphics/cloud_renderer.h"
+#include "level/graphics/planet_camera_movement.h"
 #include "input/key_input.h"
 #include "input/mouse_input.h"
 #include "utils/camera/flying_camera_controller.h"
@@ -21,24 +21,17 @@
 #include "glm/gtx/rotate_vector.hpp"
 #include "utils/json_model_loader.h"
 #include "level/graphics/ship_wake.h"
-#include "planet_generation/earth_generator.h"
 
-#include "sea_graph.h"
-
-#include "files/file.h"
-
-#include "entt.hpp"
+#include "level/level.h"
+#include "level/ecs/ships.h"
 
 #include <fstream>
 
-const float EARTH_RADIUS = 150, ATMOSPHERE_RADIUS = 198;
-
 class LevelScreen : public Screen
 {
-
   public:
-    entt::registry entts;
-    Planet earth;
+    Level *lvl;
+
     ShaderProgram earthShader, causticsShader, terrainShader, atmosphereShader, postProcessingShader, shipWakeShader, shipShader;
 
     PerspectiveCamera cam;
@@ -50,7 +43,7 @@ class LevelScreen : public Screen
     DebugLineRenderer lineRenderer;
     SharedTexture seaNormalMap, seaDUDV, caustics, sand, foamTexture, seaWaves, shipTexture;
     SharedTexArray terrainTextures;
-    SharedMesh atmosphereMesh, ship;
+    SharedMesh atmosphereMesh, shipMesh;
 
     ShipWake shipWake;
 
@@ -59,13 +52,11 @@ class LevelScreen : public Screen
     SpaceRenderer spaceRenderer;
     CloudRenderer cloudRenderer;
 
-    SeaGraph seaGraph;
-
-    float time = 0;
-
     LevelScreen(const char *loadFilePath)
-        : earth("earth", Sphere(EARTH_RADIUS)),
-          cam(PerspectiveCamera(.1, 1000, 1, 1, 55)), camController(&cam), planetCamMovement(&cam, &earth),
+        :
+          lvl(new Level(loadFilePath)),
+
+          cam(PerspectiveCamera(.1, 1000, 1, 1, 55)), camController(&cam), planetCamMovement(&cam, &lvl->earth),
           
           caustics(Texture::fromDDSFile("assets/textures/tc_caustics.dds")),
           sand(Texture::fromDDSFile("assets/textures/tc_sand.dds")),
@@ -82,8 +73,6 @@ class LevelScreen : public Screen
               "assets/textures/tc_grass_dead.dds",
           })),
 
-          seaGraph(&earth),
-
           earthShader(ShaderProgram::fromFiles("EarthShader", "assets/shaders/earth.vert", "assets/shaders/earth.frag")),
           atmosphereShader(ShaderProgram::fromFiles("EarthAtmosphereShader", "assets/shaders/earth_atmosphere.vert", "assets/shaders/earth_atmosphere.frag")),
           causticsShader(ShaderProgram::fromFiles("CausticsShader", "assets/shaders/terrain_caustics.vert", "assets/shaders/terrain_caustics.frag")),
@@ -93,7 +82,7 @@ class LevelScreen : public Screen
           shipShader(ShaderProgram::fromFiles("ShipShader", "assets/shaders/ship.vert", "assets/shaders/ship.frag")),
 
           atmosphereMesh(SphereMeshGenerator::generate("earth_atmosphere", ATMOSPHERE_RADIUS, 50, 130, VertAttributes().add_(VertAttributes::POSITION).add_(VertAttributes::NORMAL))),
-          cloudRenderer(&earth),
+          cloudRenderer(&lvl->earth),
 
           underwaterBuffer(FrameBuffer(1024, 1024)),
           reflectionBuffer(FrameBuffer(512, 512))
@@ -106,18 +95,7 @@ class LevelScreen : public Screen
 
         VertBuffer::uploadSingleMesh(atmosphereMesh);
 
-        if (loadFilePath)
-        {
-            auto earthBin = File::readBinary(loadFilePath);
-            earth.fromBinary(earthBin, [&]() {
-                return earthMeshGenerator(&earth);
-            });
-        }
-        else generateEarth(&earth);
-
-        seaGraph.generate();
-
-        waveRenderer = new WaveRenderer(earth);
+        waveRenderer = new WaveRenderer(lvl->earth);
         cam.position = glm::vec3(0, 0, 300);
         cam.lookAt(glm::vec3(0));
         cam.update();
@@ -132,31 +110,27 @@ class LevelScreen : public Screen
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
         SharedModel model = JsonModelLoader::fromUbjsonFile("assets/models/cogship.ubj", &VertAttributes().add_(VertAttributes::POSITION).add_(VertAttributes::TEX_COORDS).add_(VertAttributes::NORMAL))[0];
-        ship = model->parts[0].mesh;
-        VertBuffer::uploadSingleMesh(ship);
+        shipMesh = model->parts[0].mesh;
+        VertBuffer::uploadSingleMesh(shipMesh);
 
         MouseInput::setLockedMode(!camPlanetMode);
     }
 
     void render(double deltaTime)
     {
-        double newDeltaTime =  deltaTime * (KeyInput::pressed(GLFW_KEY_KP_ADD) ? 15 : (KeyInput::pressed(GLFW_KEY_KP_SUBTRACT) ? 0 : 1));
-        time += newDeltaTime;
-
         if (KeyInput::justPressed(GLFW_KEY_R))
         {
-            earth.destroyIslands();
-            earth = Planet("earth", Sphere(EARTH_RADIUS));
-            generateEarth(&earth);
+            delete lvl;
+            lvl = new Level();
             delete waveRenderer;
-            waveRenderer = new WaveRenderer(earth);
-
-            seaGraph.generate();
-
-            std::vector<uint8> data;
-            earth.toBinary(data);
-            File::writeBinary("level.save", data);
+            waveRenderer = new WaveRenderer(lvl->earth);
         }
+
+        double newDeltaTime =  deltaTime * (KeyInput::pressed(GLFW_KEY_KP_ADD) ? 15 : (KeyInput::pressed(GLFW_KEY_KP_SUBTRACT) ? 0 : 1));
+        lvl->update(newDeltaTime);
+        auto &time = lvl->time;
+        auto &earth = lvl->earth;
+
         ShaderProgram::reloadFromFile = int(time * 2.) % 2 == 0;//KeyInput::justPressed(GLFW_KEY_F5);
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -176,7 +150,7 @@ class LevelScreen : public Screen
         }
 
         if (camPlanetMode)
-            planetCamMovement.update(deltaTime); // planet camera movement
+            planetCamMovement.update(deltaTime, &lvl->earth); // planet camera movement
         else if (!KeyInput::pressed(GLFW_KEY_G))
             camController.update(deltaTime); // flying camera movement
 
@@ -192,6 +166,40 @@ class LevelScreen : public Screen
         float closeSunDir = clamp((planetCamMovement.actualZoom - .35) * 3., 0., .8);
         glm::vec3 sunDir = sunDirZoomedOut * (1 - closeSunDir) + sunDirZoomedIn * closeSunDir;
         sunDir = normalize(sunDir);
+
+        vec2 ll;
+        earth.cursorToLonLat(&cam, ll);
+        vec3 shipPos;// earth.lonLatTo3d(ll.x, ll.y, 0);
+
+        // RENDER WATER REFLECTIONS
+        reflectionBuffer.bind();
+        glClearColor(.12, .15, .29, 1);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        float prevCamFar = cam.far_;
+        cam.far_ = planetCamMovement.horizonDistance - 10.;
+        cam.update();
+
+        {
+            shipShader.use();
+            glUniform1i(shipShader.location("reflection"), 1);
+            shipTexture->bind(0, shipShader, "shipTexture");
+
+            lvl->entities.view<Ship>().each([&](Ship &ship) {
+                auto worldTrans = ship.transform;
+                vec3 localSunDir = vec4(sunDir, 1) * worldTrans;
+                glUniform3f(shipShader.location("sunDir"), localSunDir.x, localSunDir.y, localSunDir.z);
+                glUniformMatrix4fv(shipShader.location("mvp"), 1, GL_FALSE, &(cam.combined * worldTrans)[0][0]);
+                shipMesh->render();
+
+                shipPos = earth.lonLatTo3d(ship.lonLat.x, ship.lonLat.y, 0);
+            });
+        }
+
+        reflectionBuffer.unbind();
+        cam.far_ = prevCamFar;
+        cam.update();
+
+        // DONE RENDERING WATER REFLECTIONS
 
         // RENDER UNDERWATER:
         underwaterBuffer.bind();
@@ -220,10 +228,6 @@ class LevelScreen : public Screen
         // render waves to alpha channel of underwaterBuffer
         waveRenderer->render(newDeltaTime, cam.combined);
 
-        vec2 ll;
-        earth.cursorToLonLat(&cam, ll);
-        vec3 shipPos = earth.lonLatTo3d(ll.x, ll.y, 0);
-
         shipWakeShader.use();
         glUniformMatrix4fv(shipWakeShader.location("viewTrans"), 1, GL_FALSE, &(cam.combined[0][0]));
         shipWake.render(lineRenderer, shipPos, newDeltaTime);
@@ -231,33 +235,6 @@ class LevelScreen : public Screen
         underwaterBuffer.unbind();
 
         // DONE RENDERING UNDERWATER
-
-        // RENDER WATER REFLECTIONS
-        reflectionBuffer.bind();
-        glClearColor(.12, .15, .29, 1);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        float prevCamFar = cam.far_;
-        cam.far_ = planetCamMovement.horizonDistance - 10.;
-        cam.update();
-
-        {
-        shipShader.use();
-        glUniform1i(shipShader.location("reflection"), 1);
-        auto worldTrans = rotate(rotate(translate(mat4(1), vec3(0, 0, EARTH_RADIUS + sin(time) * 3. - 1.5)), 90 * mu::DEGREES_TO_RAD, mu::X), 130 * mu::DEGREES_TO_RAD, mu::Y);
-
-        vec3 localSunDir = vec4(sunDir, 1) * worldTrans;
-        glUniform3f(shipShader.location("sunDir"), localSunDir.x, localSunDir.y, localSunDir.z);
-        glUniformMatrix4fv(shipShader.location("mvp"), 1, GL_FALSE, &(cam.combined * worldTrans)[0][0]);
-        shipTexture->bind(0, shipShader, "shipTexture");
-        ship->render();
-        }
-
-        reflectionBuffer.unbind();
-        cam.far_ = prevCamFar;
-        cam.update();
-
-
-        // DONE RENDERING WATER REFLECTIONS
 
         sceneBuffer->bind();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -282,13 +259,15 @@ class LevelScreen : public Screen
 
         shipShader.use();
         glUniform1i(shipShader.location("reflection"), 0);
-        auto worldTrans = rotate(rotate(translate(mat4(1), vec3(0, 0, EARTH_RADIUS - sin(time) * 3. - 1.5)), 90 * mu::DEGREES_TO_RAD, mu::X), 130 * mu::DEGREES_TO_RAD, mu::Y);
-
-        vec3 localSunDir = vec4(sunDir, 1) * worldTrans;
-        glUniform3f(shipShader.location("sunDir"), localSunDir.x, localSunDir.y, localSunDir.z);
-        glUniformMatrix4fv(shipShader.location("mvp"), 1, GL_FALSE, &(cam.combined * worldTrans)[0][0]);
         shipTexture->bind(0, shipShader, "shipTexture");
-        ship->render();
+
+        lvl->entities.view<Ship>().each([&](Ship &ship) {
+            auto &worldTrans = ship.transform;
+            vec3 localSunDir = vec4(sunDir, 1) * worldTrans;
+            glUniform3f(shipShader.location("sunDir"), localSunDir.x, localSunDir.y, localSunDir.z);
+            glUniformMatrix4fv(shipShader.location("mvp"), 1, GL_FALSE, &(cam.combined * worldTrans)[0][0]);
+            shipMesh->render();
+        });
 
         // RENDER WATER:
         earthShader.use();
@@ -334,14 +313,14 @@ class LevelScreen : public Screen
         glDepthMask(true);
         // DONE RENDERING ATMOSPHERE
 
-        cloudRenderer.render(time, newDeltaTime, cam, sunDir);
+        cloudRenderer.render(time, newDeltaTime, cam, sunDir, &lvl->earth);
 
         glDisable(GL_BLEND);
 
         lineRenderer.projection = cam.combined;
-        lineRenderer.line(glm::vec3(-300, 0, 0), glm::vec3(300, 0, 0), mu::X);
-        lineRenderer.line(glm::vec3(0, -300, 0), glm::vec3(0, 300, 0), mu::Y);
-        lineRenderer.line(glm::vec3(0, 0, -300), glm::vec3(0, 0, 300), mu::Z);
+        // lineRenderer.line(glm::vec3(-300, 0, 0), glm::vec3(300, 0, 0), mu::X);
+        // lineRenderer.line(glm::vec3(0, -300, 0), glm::vec3(0, 300, 0), mu::Y);
+        // lineRenderer.line(glm::vec3(0, 0, -300), glm::vec3(0, 0, 300), mu::Z);
 
         lineRenderer.line(shipPos, shipPos + vec3(0, 10, 0), mu::X);
 
@@ -378,11 +357,28 @@ class LevelScreen : public Screen
         vec2 mouseLonLat(0);
         bool mouseOnEarth = earth.cursorToLonLat(&cam, mouseLonLat);
 
-        Node nearestToMouse = seaGraph.nearest(mouseLonLat);
+        Node nearestToMouse = lvl->seaGraph.nearest(mouseLonLat);
 
         std::vector<WayPoint> path;
         glLineWidth(3.);
-        if (mouseOnEarth && KeyInput::pressed(GLFW_KEY_P) && seaGraph.findPath(vec2(0, 0), mouseLonLat, path))
+
+        lvl->entities.view<Ship, ShipPath>().each([&](Ship &ship, ShipPath &pathC) {
+            auto &path = pathC.points;
+            if (path.size() == 0) return;
+            vec3 prev = path[0].position;
+            lineRenderer.line(vec3(0), ship.up * float(40.), mu::Y);
+            lineRenderer.line(vec3(0), ship.dir * float(40.), mu::Z);
+            lineRenderer.line(vec3(0), normalize(cross(ship.up, ship.dir)) * float(40.), mu::X);
+
+            std::cout << orientedAngle(ship.up, ship.dir, normalize(cross(ship.up, ship.dir))) * mu::RAD_TO_DEGREES << "\n\n\n";
+            for (auto &n : path)
+            {
+                lineRenderer.line(prev * float(1.005), n.position * float(1.005), mu::Y);
+                prev = n.position;
+            }
+        });
+        
+        if (mouseOnEarth && KeyInput::pressed(GLFW_KEY_P) && lvl->seaGraph.findPath(vec2(0, 0), mouseLonLat, path))
         {
             vec3 prev = path[0].position;
             for (auto &n : path)
@@ -393,19 +389,19 @@ class LevelScreen : public Screen
         }
         glLineWidth(1.);
 
-        for (auto &n : seaGraph.nodes)
-        {
-            // for (auto &n2 : n->connections)
-            // {
-            //     lineRenderer.line(
-            //         n->position * float(1.01), n2->position * float(1.01), vec3(1 - n->distToCoast / 5., .3, .8)
-            //     );
+        // for (auto &n : seaGraph.nodes)
+        // {
+        //     // for (auto &n2 : n->connections)
+        //     // {
+        //     //     lineRenderer.line(
+        //     //         n->position * float(1.01), n2->position * float(1.01), vec3(1 - n->distToCoast / 5., .3, .8)
+        //     //     );
 
-            //     // std::cout << to_string(n->position) << " -> " << to_string(n2->position) << "\n";
-            // }
-            if (n == nearestToMouse)
-                lineRenderer.line(n->position, n->position * float(1.1), mu::Z);
-        }
+        //     //     // std::cout << to_string(n->position) << " -> " << to_string(n2->position) << "\n";
+        //     // }
+        //     if (n == nearestToMouse)
+        //         lineRenderer.line(n->position, n->position * float(1.1), mu::Z);
+        // }
 
         sceneBuffer->unbind();
         glEnable(GL_BLEND);
@@ -435,6 +431,6 @@ class LevelScreen : public Screen
     ~LevelScreen()
     {
         delete waveRenderer;
+        delete lvl;
     }
-
 };

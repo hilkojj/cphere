@@ -1,7 +1,7 @@
 #ifndef SPACE_RENDERER_H
 #define SPACE_RENDERER_H
 
-#include "planet.h"
+#include "../planet.h"
 #include "graphics/camera.h"
 #include "graphics/shader_program.h"
 #include "graphics/cube_map.h"

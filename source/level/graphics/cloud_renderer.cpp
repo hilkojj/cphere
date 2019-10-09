@@ -29,8 +29,9 @@ CloudRenderer::CloudRenderer(Planet *earth)
     quad->vertBuffer->uploadPerInstanceData(spawnpoints, particlesPerOffset);
 }
 
-void CloudRenderer::render(double time, double deltaTime, Camera &cam, vec3 sunDir)
+void CloudRenderer::render(double time, double deltaTime, Camera &cam, vec3 sunDir, Planet *earthhh)
 {
+    earth = earthhh;
     if (clouds.size() == 0) deltaTime = 30;
     while (clouds.size() < 40)
         clouds.push_back({

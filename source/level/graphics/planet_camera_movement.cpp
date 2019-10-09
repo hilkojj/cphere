@@ -10,8 +10,9 @@ PlanetCameraMovement::PlanetCameraMovement(PerspectiveCamera *cam, Planet *plt)
 const double DRAG_UPDATE_STEP = 1. / 60.;
 const int DRAG_BUTTON = GLFW_MOUSE_BUTTON_LEFT;
 
-void PlanetCameraMovement::update(double deltaTime)
+void PlanetCameraMovement::update(double deltaTime, Planet *plttt)
 {
+    plt = plttt;
     bool startDrag = MouseInput::justPressed(DRAG_BUTTON),
          dragging = MouseInput::pressed(DRAG_BUTTON),
          stoppedDragging = MouseInput::justReleased(DRAG_BUTTON);

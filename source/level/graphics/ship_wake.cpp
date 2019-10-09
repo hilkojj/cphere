@@ -4,7 +4,7 @@
 
 #include <memory.h>
 
-const int NR_OF_LINES = 100;
+const int NR_OF_LINES = 35;
 
 ShipWake::ShipWake()
 {
@@ -60,11 +60,12 @@ void ShipWake::render(DebugLineRenderer &lineRenderer, vec3 &pos, double deltaTi
         }
         // memcpy(&mesh->vertices[2], &mesh->vertices[0], sizeof(float) * mesh->attributes.getVertSize() * (NR_OF_LINES - 1) * 2);
 
-        timeLeft = .03;
+        timeLeft = .16;
     }
     // set first line position to ship position
-    mesh->setVec3(pos + dirTangent * vec3(.1), 0, 0);
-    mesh->setVec3(pos - dirTangent * vec3(.1), 1, 0);
+    vec3 beginPos = pos + normalize(dir) * float(1.2);
+    mesh->setVec3(beginPos + dirTangent * vec3(.1), 0, 0);
+    mesh->setVec3(beginPos - dirTangent * vec3(.1), 1, 0);
 
     // lineRenderer.line(mesh->getVec3(0, 0), mesh->getVec3(0, 0) + vec3(0, 10, 0), mu::Z);
     // lineRenderer.line(mesh->getVec3(1, 0), mesh->getVec3(1, 0) + vec3(0, 10, 0), mu::Z);
@@ -81,8 +82,10 @@ void ShipWake::render(DebugLineRenderer &lineRenderer, vec3 &pos, double deltaTi
 
         vec3 lineTangent = normalize(p0 - p1);
 
-        mesh->setVec3(p0 + lineTangent * vec3(2. * deltaTime), i * 2, 0);
-        mesh->setVec3(p1 - lineTangent * vec3(2. * deltaTime), i * 2 + 1, 0);
+        float speed = i == 1 ? 5. : (i == 2 ? 3. : 1.5);
+
+        mesh->setVec3(p0 + lineTangent * vec3(speed * deltaTime), i * 2, 0);
+        mesh->setVec3(p1 - lineTangent * vec3(speed * deltaTime), i * 2 + 1, 0);
     }
 
     // temp:

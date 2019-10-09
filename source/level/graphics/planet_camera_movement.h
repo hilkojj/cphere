@@ -4,7 +4,7 @@
 #include <queue>
 
 #include "graphics/3d/perspective_camera.h"
-#include "planet.h"
+#include "../planet.h"
 
 class PlanetCameraMovement
 {
@@ -12,7 +12,7 @@ class PlanetCameraMovement
 
     PlanetCameraMovement(PerspectiveCamera *cam, Planet *plt);
 
-    void update(double deltaTime);
+    void update(double deltaTime, Planet *plt);
 
     float zoomVelocity = 0;
     float lon = 160, lat = 75, zoom = 0, actualZoom = 0;

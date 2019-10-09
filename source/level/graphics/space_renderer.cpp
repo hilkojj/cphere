@@ -2,11 +2,9 @@
 #include "space_renderer.h"
 #include "graphics/3d/vert_buffer.h"
 #include "utils/json_model_loader.h"
-#include "glm/gtc/matrix_transform.hpp"
-#include "glm/gtx/rotate_vector.hpp"
 #include "utils/math_utils.h"
 #include "gu/game_utils.h"
-#include "planet.h"
+#include "../planet.h"
 
 SpaceRenderer::SpaceRenderer()
     : cubeMapShader(ShaderProgram::fromFiles(
