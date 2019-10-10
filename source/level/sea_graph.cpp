@@ -263,29 +263,31 @@ bool SeaGraph::findPath(const vec2 &lonLat0, const vec2 &lonLat1, std::vector<Wa
 
         nodePath
     );
+    if (!success) return false;
 
-    int stepSize = 5;
-    for (int i = 0; i < (nodePath.size() - stepSize) / stepSize; i++)
-    {
-        std::vector<Node> subNodePath;
-        int ni = (nodePath.size() - stepSize) - stepSize * i;
-        auto &n = nodePath[ni];
-
-        bool success = findAStarPath<Node>(
-            begin, n,
-            [&](Node &n) { return length(n->position - n->position); },
-            [](Node &n0, Node &n1) { return float(1); },
-            [](Node &n) -> std::vector<Node>& { return n->connections; },
-
-            subNodePath
-        );
-        if (success && subNodePath.size() < ni - 2)
-        {
-            for (int j = ni + 1; j < nodePath.size(); j++)
-                subNodePath.push_back(nodePath[j]);
-            nodePath = subNodePath;
-        }
-    }
+    // todo: fix this, this crashes:
+//    int stepSize = 5;
+//    for (int i = 0; i < (nodePath.size() - stepSize) / stepSize; i++)
+//    {
+//        std::vector<Node> subNodePath;
+//        int ni = (nodePath.size() - stepSize) - stepSize * i;
+//        auto &nodeOnPath = nodePath[ni];
+//
+//        bool success = findAStarPath<Node>(
+//            begin, nodeOnPath,
+//            [&](Node &n) { return length(nodeOnPath->position - n->position); },
+//            [](Node &n0, Node &n1) { return float(1); },
+//            [](Node &n) -> std::vector<Node>& { return n->connections; },
+//
+//            subNodePath
+//        );
+//        if (success && subNodePath.size() < ni - 2)
+//        {
+//            for (int j = ni + 1; j < nodePath.size(); j++)
+//                subNodePath.push_back(nodePath[j]);
+//            nodePath = subNodePath;
+//        }
+//    }
 
     for (auto &n : nodePath) path.push_back({n, n->position, n->lonLat});
     path.back().position = plt->lonLatTo3d(lonLat1.x, lonLat1.y, 0.);

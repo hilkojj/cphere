@@ -33,13 +33,15 @@ class Level
     SeaGraph seaGraph;
     entt::registry entities;
 
-    DebugLineRenderer *lineRenderer;
-
     std::vector<LevelSystem*> systems;
 
     float time = 0;
 
     void update(double deltaTime);
+
+    // the following variables should be removed from this class as they're graphics related:
+    DebugLineRenderer *lineRenderer;
+    Camera *cam;
 
     ~Level();
 };

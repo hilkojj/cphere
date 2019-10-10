@@ -126,6 +126,7 @@ class LevelScreen : public Screen
             waveRenderer = new WaveRenderer(lvl->earth);
         }
         lvl->lineRenderer = &lineRenderer;
+        lvl->cam = &cam;
 
         double newDeltaTime =  deltaTime * (KeyInput::pressed(GLFW_KEY_KP_ADD) ? 15 : (KeyInput::pressed(GLFW_KEY_KP_SUBTRACT) ? .1 : 1));
         
