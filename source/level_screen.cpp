@@ -125,9 +125,10 @@ class LevelScreen : public Screen
             delete waveRenderer;
             waveRenderer = new WaveRenderer(lvl->earth);
         }
+        lvl->lineRenderer = &lineRenderer;
 
-        double newDeltaTime =  deltaTime * (KeyInput::pressed(GLFW_KEY_KP_ADD) ? 15 : (KeyInput::pressed(GLFW_KEY_KP_SUBTRACT) ? 0 : 1));
-        lvl->update(newDeltaTime);
+        double newDeltaTime =  deltaTime * (KeyInput::pressed(GLFW_KEY_KP_ADD) ? 15 : (KeyInput::pressed(GLFW_KEY_KP_SUBTRACT) ? .1 : 1));
+        
         auto &time = lvl->time;
         auto &earth = lvl->earth;
 
@@ -322,7 +323,8 @@ class LevelScreen : public Screen
         // lineRenderer.line(glm::vec3(0, -300, 0), glm::vec3(0, 300, 0), mu::Y);
         // lineRenderer.line(glm::vec3(0, 0, -300), glm::vec3(0, 0, 300), mu::Z);
 
-        lineRenderer.line(shipPos, shipPos + vec3(0, 10, 0), mu::X);
+        // lineRenderer.line(shipPos, shipPos + vec3(0, 10, 0), mu::X);
+        lvl->update(newDeltaTime);
 
         for (int i = 0; i < 100; i += 2)
             lineRenderer.line(sunDir * glm::vec3(i * 5), sunDir * glm::vec3((i + 1) * 5), glm::vec3(1, 1, 0));
@@ -364,13 +366,7 @@ class LevelScreen : public Screen
 
         lvl->entities.view<Ship, ShipPath>().each([&](Ship &ship, ShipPath &pathC) {
             auto &path = pathC.points;
-            if (path.size() == 0) return;
             vec3 prev = path[0].position;
-            lineRenderer.line(vec3(0), ship.up * float(40.), mu::Y);
-            lineRenderer.line(vec3(0), ship.dir * float(40.), mu::Z);
-            lineRenderer.line(vec3(0), normalize(cross(ship.up, ship.dir)) * float(40.), mu::X);
-
-            std::cout << orientedAngle(ship.up, ship.dir, normalize(cross(ship.up, ship.dir))) * mu::RAD_TO_DEGREES << "\n\n\n";
             for (auto &n : path)
             {
                 lineRenderer.line(prev * float(1.005), n.position * float(1.005), mu::Y);
