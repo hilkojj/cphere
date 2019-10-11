@@ -43,6 +43,8 @@ class Island
 
     bool tileAtSeaFloor(int x, int y);
 
+    float tileSteepness(int x, int y);
+
     float distToHeight(int x, int y, float minHeight, float maxHeight, int maxDist);
 
     bool containsLonLatPoint(float lon, float lat);

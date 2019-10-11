@@ -69,8 +69,15 @@ class LevelScreen : public Screen
               "assets/textures/tc_sand.dds",
               "assets/textures/tc_sand_normal.dds",
 
+              "assets/textures/tc_rock.dds",
+              "assets/textures/tc_rock_normal.dds",
+
               "assets/textures/tc_grass.dds",
+
               "assets/textures/tc_grass_dead.dds",
+
+              "assets/textures/tc_rock2.dds",
+              "assets/textures/tc_rock2_normal.dds",
           })),
 
           earthShader(ShaderProgram::fromFiles("EarthShader", "assets/shaders/earth.vert", "assets/shaders/earth.frag")),
@@ -247,8 +254,11 @@ class LevelScreen : public Screen
         glUniform1i(terrainShader.location("terrainTextures"), 0);
         glUniform3f(terrainShader.location("sunDir"), sunDir.x, sunDir.y, sunDir.z);
         glUniform1i(terrainShader.location("backgroundTerrainLayer"), 0);
-        glUniform4f(terrainShader.location("terrainLayers"), 2, 3, 4, 5);
-        glUniform4f(terrainShader.location("hasNormal"), 0, 0, 0, 0); // (background must have normal)
+        glUniform4f(terrainShader.location("terrainLayers"), 2, 4, 5, 6);
+        glUniform4i(terrainShader.location("hasNormal"), 1, 0, 0, 1); // (background must have normal)
+        glUniform4i(terrainShader.location("fadeBlend"), 0, 0, 0, 1);
+        glUniform4f(terrainShader.location("specularity"), .4, 0, 0, .6);
+        glUniform4f(terrainShader.location("textureScale"), 2.2, 1., 1., 1.5);
 
         glUniformMatrix4fv(terrainShader.location("viewTrans"), 1, GL_FALSE, &(cam.combined[0][0]));
         for (auto isl : earth.islands)

@@ -19,7 +19,7 @@ void main() {
     color = texture(terrainTexture, v_texCoord);
 
     // light
-    float dayLight = dot(v_normal, sunDir) * .3 + .7;
+    float dayLight = dot(v_normal, sunDir) * .35 + .65;
     float dist = 2.0 * near * far / (far + near - (2.0 * gl_FragCoord.z - 1.0) * (far - near));
 
     for (float t = time; t < time + .2; t += .02) {

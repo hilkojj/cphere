@@ -96,8 +96,6 @@ class ShipsSystem : public LevelSystem
                 ship.pos = normalize(ship.pos) * lvl->earth.sphere.radius;
             } else ship.currentVelocity = 0.;
 
-            std::cout << ship.currentVelocity << "m/s\n";
-
             ship.dir = newDir;
             vec3 oldUp = ship.up;
             ship.up = normalize(ship.pos);

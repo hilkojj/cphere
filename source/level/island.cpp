@@ -353,3 +353,17 @@ float Island::percentageUnderwater() const
         if (vertexPositionsOriginal[i].y < 0.) p += 1.;
     return p / nrOfVerts;
 }
+
+float Island::tileSteepness(int x, int y)
+{
+    float minHeight = 99999, maxHeight = -99999;
+    for (int x0 = x; x0 <= x + 1; x0++)
+    {
+        for (int y0 = y; y0 <= y + 1; y0++)
+        {
+            minHeight = min(minHeight, vertexPositionsOriginal[xyToVertI(x0, y0)].y);
+            maxHeight = max(maxHeight, vertexPositionsOriginal[xyToVertI(x0, y0)].y);
+        }
+    }
+    return maxHeight - minHeight;
+}

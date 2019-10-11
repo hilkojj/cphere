@@ -230,7 +230,7 @@ void underwater(float seaDepth, vec3 normal, vec2 screenCoords, float visibility
 float fresnelReflection(vec3 normal, float detail, float daylight, vec2 screenCoords)
 {
     float dayLightEffect = (1. - detail) * .7 + .3;
-    vec3 reflectionColor = vec3(.3, .5, .6);
+    vec3 reflectionColor = vec3(.45, .55, .9);
 
     reflectionColor *= daylight * dayLightEffect + (1. - dayLightEffect);
 
@@ -254,7 +254,7 @@ float fresnelReflection(vec3 normal, float detail, float daylight, vec2 screenCo
 
 void main()
 {
-    // discard;
+//     discard;
     vec2 screenCoords = gl_FragCoord.xy / scrSize;
 
     float distToSea = 2.0 * near * far / (far + near - (2.0 * gl_FragCoord.z - 1.0) * (far - near));

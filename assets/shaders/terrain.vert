@@ -14,6 +14,7 @@ out vec2 v_texCoord;
 out vec4 v_texBlend;
 
 out vec3 v_sunDirTanSpace;
+out vec3 v_toCamera;
 
 out float v_dayLight;
 
@@ -35,5 +36,7 @@ void main() {
     v_sunDirTanSpace = toTanSpace * sunDir;
 
     v_dayLight = clamp(dot(a_normal, sunDir), 0., 1.);
+
+    v_toCamera = (a_pos - ((viewTrans) * vec4(0, 0, 0, 1)).xyz);
 
 }
