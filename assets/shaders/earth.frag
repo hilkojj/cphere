@@ -201,7 +201,7 @@ void applyFoam(float foam, vec3 normal)
 
 void underwater(float seaDepth, vec3 normal, vec2 screenCoords, float visibility)
 {
-    seaDepth += .3;
+    seaDepth += .1;
     vec2 dudv = normal.xy * .15;
     vec2 distortedScreenCoords = screenCoords + dudv;
     distortedScreenCoords.x = max(0.01, min(.99, distortedScreenCoords.x));

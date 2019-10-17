@@ -68,10 +68,10 @@ bool Planet::cursorToLonLat(const Camera *cam, vec2 &lonLat) const
     else return false;
 }
 
-Island *Planet::islUnderCursor(const Camera &cam)
+Island *Planet::islUnderCursor(const Camera *cam)
 {
     vec2 lonLat;
-    if (!cursorToLonLat(&cam, lonLat)) return NULL;
+    if (!cursorToLonLat(cam, lonLat)) return NULL;
 
     if (lastIslandUnderCursor && lastIslandUnderCursor->containsLonLatPoint(lonLat.x, lonLat.y))
         return lastIslandUnderCursor;
@@ -115,7 +115,7 @@ void Planet::fromBinary(const std::vector<uint8> &in, PlanetMeshGenerator meshGe
     {
         auto size = slz::get<uint32>(in, inputOffset + 1 + i * 4);
 
-        islands.push_back(new Island(in, startI, this));
+        islands.emplace_back(new Island(in, startI, this));
         auto isl = islands.back();
         isl->planetDeform();
         isl->placeOnPlanet();

@@ -35,7 +35,7 @@ class Planet
 
     bool cursorToLonLat(const Camera *cam, vec2 &lonLat) const;
 
-    Island *islUnderCursor(const Camera &cam);
+    Island *islUnderCursor(const Camera *cam);
 
     Island *islAtLonLat(const vec2& lonLat) const;
 

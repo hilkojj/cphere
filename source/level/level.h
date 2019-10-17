@@ -1,9 +1,12 @@
 #ifndef LEVEL_H
 #define LEVEL_H
 
+#include <map>
+
 #include "planet.h"
 #include "sea_graph.h"
 #include "../entt.hpp"
+#include "ecs/buildings/blueprints.h"
 #include "graphics/3d/debug_line_renderer.h"
 
 const float EARTH_RADIUS = 150, ATMOSPHERE_RADIUS = 198;
@@ -31,7 +34,7 @@ class Level
 
     Planet earth;
     SeaGraph seaGraph;
-    entt::registry entities;
+    entt::registry registry;
 
     std::vector<LevelSystem*> systems;
 

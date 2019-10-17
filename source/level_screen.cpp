@@ -41,9 +41,9 @@ class LevelScreen : public Screen
     bool camPlanetMode = true;
 
     DebugLineRenderer lineRenderer;
-    SharedTexture seaNormalMap, seaDUDV, caustics, sand, foamTexture, seaWaves, shipTexture;
+    SharedTexture seaNormalMap, seaDUDV, caustics, sand, foamTexture, seaWaves, shipTexture, pineTexture;
     SharedTexArray terrainTextures;
-    SharedMesh atmosphereMesh, shipMesh;
+    SharedMesh atmosphereMesh, shipMesh, pineMesh;
 
     ShipWake shipWake;
 
@@ -62,6 +62,7 @@ class LevelScreen : public Screen
           sand(Texture::fromDDSFile("assets/textures/tc_sand.dds")),
           foamTexture(Texture::fromDDSFile("assets/textures/tc_foam.dds")),
           shipTexture(Texture::fromDDSFile("assets/textures/cogship.dds")),
+          pineTexture(Texture::fromDDSFile("assets/textures/pine_tree.dds")),
 
           seaWaves(Texture::fromDDSFile("assets/textures/sea_waves.dds")),
 
@@ -116,9 +117,18 @@ class LevelScreen : public Screen
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        SharedModel model = JsonModelLoader::fromUbjsonFile("assets/models/cogship.ubj", &VertAttributes().add_(VertAttributes::POSITION).add_(VertAttributes::TEX_COORDS).add_(VertAttributes::NORMAL))[0];
-        shipMesh = model->parts[0].mesh;
-        VertBuffer::uploadSingleMesh(shipMesh);
+        auto posTexNorAttrs = VertAttributes().add_(VertAttributes::POSITION).add_(VertAttributes::TEX_COORDS).add_(VertAttributes::NORMAL);
+
+        {
+            SharedModel model = JsonModelLoader::fromUbjsonFile("assets/models/cogship.ubj", &posTexNorAttrs)[0];
+            pineMesh = model->parts[0].mesh;
+        }
+        {
+            SharedModel model = JsonModelLoader::fromUbjsonFile("assets/models/pine.ubj", &posTexNorAttrs)[0];
+            shipMesh = model->parts[0].mesh;
+        }
+        auto buffer = VertBuffer::with(posTexNorAttrs);
+        buffer->add(shipMesh)->add(pineMesh)->upload(true);
 
         MouseInput::setLockedMode(!camPlanetMode);
     }
@@ -165,8 +175,8 @@ class LevelScreen : public Screen
 
         if (KeyInput::pressed(GLFW_KEY_G))
         {
-            hoveredIsland = earth.islUnderCursor(cam);
-            if (hoveredIsland) hoveredIsland->tileUnderCursor(hoveredTile, cam);
+            hoveredIsland = earth.islUnderCursor(&cam);
+            if (hoveredIsland) hoveredIsland->tileUnderCursor(hoveredTile, &cam);
         }
 
         glm::vec3 sunDirZoomedOut = glm::vec3(glm::sin(time * .008), 0, glm::cos(time * .008));
@@ -192,8 +202,9 @@ class LevelScreen : public Screen
             shipShader.use();
             glUniform1i(shipShader.location("reflection"), 1);
             shipTexture->bind(0, shipShader, "shipTexture");
+            glCullFace(GL_FRONT);
 
-            lvl->entities.view<Ship>().each([&](Ship &ship) {
+            lvl->registry.view<Ship>().each([&](Ship &ship) {
                 auto worldTrans = ship.transform;
                 vec3 localSunDir = vec4(sunDir, 1) * worldTrans;
                 glUniform3f(shipShader.location("sunDir"), localSunDir.x, localSunDir.y, localSunDir.z);
@@ -202,7 +213,12 @@ class LevelScreen : public Screen
 
                 shipPos = earth.lonLatTo3d(ship.lonLat.x, ship.lonLat.y, 0);
             });
+            glCullFace(GL_BACK);
         }
+
+//        {
+//            lvl->entities.view<Building,
+//        }
 
         reflectionBuffer.unbind();
         cam.far_ = prevCamFar;
@@ -256,7 +272,7 @@ class LevelScreen : public Screen
         glUniform1i(terrainShader.location("backgroundTerrainLayer"), 0);
         glUniform4f(terrainShader.location("terrainLayers"), 2, 4, 5, 6);
         glUniform4i(terrainShader.location("hasNormal"), 1, 0, 0, 1); // (background must have normal)
-        glUniform4i(terrainShader.location("fadeBlend"), 0, 0, 0, 1);
+        glUniform4i(terrainShader.location("fadeBlend"), 1, 0, 0, 1);
         glUniform4f(terrainShader.location("specularity"), .4, 0, 0, .6);
         glUniform4f(terrainShader.location("textureScale"), 2.2, 1., 1., 1.5);
 
@@ -273,7 +289,7 @@ class LevelScreen : public Screen
         glUniform1i(shipShader.location("reflection"), 0);
         shipTexture->bind(0, shipShader, "shipTexture");
 
-        lvl->entities.view<Ship>().each([&](Ship &ship) {
+        lvl->registry.view<Ship>().each([&](Ship &ship) {
             auto &worldTrans = ship.transform;
             vec3 localSunDir = vec4(sunDir, 1) * worldTrans;
             glUniform3f(shipShader.location("sunDir"), localSunDir.x, localSunDir.y, localSunDir.z);
@@ -367,6 +383,31 @@ class LevelScreen : public Screen
             );
         }
 
+        for (Island *isl : lvl->earth.islands)
+        {
+            for (int x = 0; x < isl->width; x++)
+            {
+                for (int y = 0; y < isl->height; y++)
+                {
+                    auto b = isl->getBuilding(x, y);
+                    if (b)
+                    {
+                        vec3 n = isl->vertexNormalsPlanet[isl->xyToVertI(x, y)] * float (.1);
+                        lineRenderer.line(
+                                isl->vertexPositionsPlanet[isl->xyToVertI(x, y)] + n,
+                                isl->vertexPositionsPlanet[isl->xyToVertI(x + 1, y + 1)] + n,
+                                mu::X
+                        );
+                        lineRenderer.line(
+                                isl->vertexPositionsPlanet[isl->xyToVertI(x + 1, y)] + n,
+                                isl->vertexPositionsPlanet[isl->xyToVertI(x, y + 1)] + n,
+                                mu::X
+                        );
+                    }
+                }
+            }
+        }
+
         vec2 mouseLonLat(0);
         bool mouseOnEarth = earth.cursorToLonLat(&cam, mouseLonLat);
 
@@ -375,7 +416,7 @@ class LevelScreen : public Screen
         std::vector<WayPoint> path;
         glLineWidth(3.);
 
-        lvl->entities.view<Ship, ShipPath>().each([&](Ship &ship, ShipPath &pathC) {
+        lvl->registry.view<Ship, ShipPath>().each([&](Ship &ship, ShipPath &pathC) {
             auto &path = pathC.points;
             vec3 prev = path[0].position;
             for (auto &n : path)

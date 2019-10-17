@@ -49,7 +49,7 @@ class ShipsSystem : public LevelSystem
   public:
     void update(double deltaTime, Level *lvl) override
     {
-        lvl->entities.view<Ship>().each([&](auto entity, Ship &ship) {
+        lvl->registry.view<Ship>().each([&](auto entity, Ship &ship) {
 
             if (!ship.initialized) initializeShip(ship, lvl);
 
@@ -123,7 +123,7 @@ class ShipsSystem : public LevelSystem
                     std::vector<WayPoint> points;
                     lvl->seaGraph.findPath(ship.lonLat, goalLonLat, points);
 
-                    lvl->entities.assign_or_replace<ShipPath>(entity, points);
+                    lvl->registry.assign_or_replace<ShipPath>(entity, points);
                 }
             }
 
@@ -146,14 +146,14 @@ class ShipPathSystem : public LevelSystem
 
     void update(double deltaTime, Level *lvl) override
     {
-        lvl->entities.view<Ship, ShipPath>().each([&](auto entity, Ship &ship, ShipPath &path) {
+        lvl->registry.view<Ship, ShipPath>().each([&](auto entity, Ship &ship, ShipPath &path) {
 
             if (path.progress == 0.) path.progress = ship.currentVelocity / 10.; // maintain lead for goal on ship
 
             path.progress += (deltaTime * 2. * (1. - clamp(length(ship.goal - ship.pos) * .1, 0., 1.)));
             if (path.progress >= path.points.size() - 1)
             {
-                lvl->entities.remove<ShipPath>(entity);
+                lvl->registry.remove<ShipPath>(entity);
                 return;
             }
 

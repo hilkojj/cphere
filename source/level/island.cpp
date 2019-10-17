@@ -15,7 +15,8 @@ Island::Island(int width, int height, Planet *plt)
       vertexNormalsPlanet(nrOfVerts, vec3()),
       vertexPositionsPlanet(nrOfVerts, vec3()),
       vertexPositionsOriginal(nrOfVerts, vec3()),
-      textureMap(nrOfVerts, vec4())
+      textureMap(nrOfVerts, vec4()),
+      buildings(width, std::vector<entt::entity>(height, 0))
 {
     std::cout << "Creating island\n";
 }
@@ -116,6 +117,16 @@ bool Island::tileAtSeaFloor(int x, int y)
         && vertexPositionsOriginal[xyToVertI(x + 1, y + 1)].y <= seaBottom + .1;
 }
 
+
+bool Island::tileAboveSea(int x, int y)
+{
+    return vertexPositionsOriginal[xyToVertI(x, y)].y         >= 0
+        && vertexPositionsOriginal[xyToVertI(x + 1, y)].y     >= 0
+        && vertexPositionsOriginal[xyToVertI(x, y + 1)].y     >= 0
+        && vertexPositionsOriginal[xyToVertI(x + 1, y + 1)].y >= 0;
+}
+
+
 float Island::distToHeight(int x, int y, float minHeight, float maxHeight, int maxDist)
 {
     float dist = maxDist;
@@ -147,7 +158,7 @@ bool Island::containsTile(int x, int y) const
     return x > 0 && y > 0 && x < width && y < height;
 }
 
-bool Island::tileUnderCursor(glm::ivec2 &out, const Camera &cam)
+bool Island::tileUnderCursor(glm::ivec2 &out, const Camera *cam)
 {
     vec2 cursor = vec2(MouseInput::mouseX, MouseInput::mouseY);
     bool found = false;
@@ -167,10 +178,10 @@ bool Island::tileUnderCursor(glm::ivec2 &out, const Camera &cam)
 
         bool inViewport = false;
         vec3
-            q0 = cam.projectPixels(p0, inViewport),
-            q1 = cam.projectPixels(p1, inViewport),
-            q2 = cam.projectPixels(p2, inViewport),
-            q3 = cam.projectPixels(p3, inViewport);
+            q0 = cam->projectPixels(p0, inViewport),
+            q1 = cam->projectPixels(p1, inViewport),
+            q2 = cam->projectPixels(p2, inViewport),
+            q3 = cam->projectPixels(p3, inViewport);
 
         if (!inViewport) return true;
 
@@ -263,14 +274,14 @@ void Island::createMesh()
 
     for (int i = 0; i < nrOfVerts; i++)
     {
-        mesh->setVec3(vertexPositionsPlanet[i], i, posOffset);     // position
-        mesh->setVec3(vertexNormalsPlanet[i], i, norOffset);       // normal
+        mesh->setVec(vertexPositionsPlanet[i], i, posOffset);     // position
+        mesh->setVec(vertexNormalsPlanet[i], i, norOffset);       // normal
 
-        mesh->setVec2(
+        mesh->setVec(
             vec2(vertIToX(i), vertIToY(i)) / vec2(50), i, uvOffset    // texCoords
         );
 
-        mesh->setVec4(textureMap[i], i, texOffset);    // texture blending
+        mesh->setVec(textureMap[i], i, texOffset);    // texture blending
     }
 
     int i = 0;
@@ -305,8 +316,7 @@ void Island::transformOutlines()
 
     for (auto &outline : outlines3d)
     {
-        transformed.push_back(std::vector<vec3>());
-
+        transformed.emplace_back();
         for (auto &p : outline) transformed.back().push_back(planetTransform * vec4(p, 1));
     }
 }
@@ -366,4 +376,9 @@ float Island::tileSteepness(int x, int y)
         }
     }
     return maxHeight - minHeight;
+}
+
+entt::entity Island::getBuilding(int x, int y) const
+{
+    return buildings[x][y];
 }

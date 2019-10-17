@@ -11,17 +11,19 @@ uniform float zoomEffect, zoom;
 
 const float near = .1, far = 1000.;
 
-void main()
+void SSAO()
 {
-    vec2 offset = v_texCoords * vec2(-2) + vec2(1);
-    float r = texture(scene, v_texCoords + offset * .0010).r;
-    float g = texture(scene, v_texCoords + offset * .0005).g;
-    float b = texture(scene, v_texCoords).b;
+    float AO = 0.;
 
-    color = vec4(r, g, b, 1);
+    for (int i = 0; i < 128; i++)
+    {
 
+    }
+}
+
+void zoomMotionBlur()
+{
     vec2 mbOffset = vec2(gl_FragCoord.x / resolution.x, gl_FragCoord.y / resolution.y) - vec2(.5);
-
     if (zoomEffect > .05)
     {
         const int steps = 20;
@@ -35,7 +37,10 @@ void main()
         }
         color /= div;
     }
+}
 
+void fog()
+{
     float depth = texture(sceneDepth, v_texCoords).r;
     depth = 2.0 * near * far / (far + near - (2.0 * depth - 1.0) * (far - near));
 
@@ -46,7 +51,24 @@ void main()
 
     color.rgb *= 1. - fog;
     color.rgb += vec3(.45, .55, .9) * fog;
+}
+
+void main()
+{
+    vec2 offset = v_texCoords * vec2(-2) + vec2(1);
+    // chromatic aberration
+    float r = texture(scene, v_texCoords + offset * .0010).r;
+    float g = texture(scene, v_texCoords + offset * .0005).g;
+    float b = texture(scene, v_texCoords).b;
+
+    color = vec4(r, g, b, 1);
+
+    zoomMotionBlur();
+
+    fog();
 
     float vignette = smoothstep(3.0, .6, length(offset));
     color.rgb *= vignette;
+
+    SSAO();
 }

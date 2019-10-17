@@ -2,6 +2,7 @@
 #include "../planet_generation/earth_generator.h"
 #include "files/file.h"
 #include "ecs/ships.h"
+#include "ecs/buildings/buildings.h"
 
 Level::Level(const char *loadFilePath)
     :   earth("earth", Sphere(EARTH_RADIUS)),
@@ -9,8 +10,8 @@ Level::Level(const char *loadFilePath)
         systems({
 
             new ShipsSystem(),
-            new ShipPathSystem()
-
+            new ShipPathSystem(),
+            new BuildingSystem(this)
         })
 {
     if (loadFilePath)
@@ -29,7 +30,7 @@ Level::Level(const char *loadFilePath)
     seaGraph.generate();
 
     {   // tmp
-        entities.assign<Ship>(entities.create(), vec2(30, 30));
+        registry.assign<Ship>(registry.create(), vec2(30, 30));
     }
 }
 

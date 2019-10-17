@@ -9,8 +9,10 @@
 #include "graphics/camera.h"
 
 #include "json.hpp"
+#include "../entt.hpp"
 
 class Planet;
+class BuildingSystem;
 
 class Island
 {
@@ -20,7 +22,10 @@ class Island
     int width, height, nrOfVerts;
     float longitude, latitude;
     mat4 planetTransform;
+
     bool isInView = true;
+
+    float seaBottom = 0;
 
     SharedMesh terrainMesh;
 
@@ -33,8 +38,6 @@ class Island
 
     void toBinary(std::vector<uint8> &out) const;
 
-    float seaBottom = 0;
-
     int xyToVertI(int x, int y);
 
     int vertIToX(int i);
@@ -43,13 +46,15 @@ class Island
 
     bool tileAtSeaFloor(int x, int y);
 
+    bool tileAboveSea(int x, int y);
+
     float tileSteepness(int x, int y);
 
     float distToHeight(int x, int y, float minHeight, float maxHeight, int maxDist);
 
     bool containsLonLatPoint(float lon, float lat);
 
-    bool tileUnderCursor(ivec2 &out, const Camera &cam);
+    bool tileUnderCursor(ivec2 &out, const Camera *cam);
 
     bool containsTile(int x, int y) const;
 
@@ -110,12 +115,19 @@ class Island
 
     void placeOnPlanet();
 
+    entt::entity getBuilding(int x, int y) const;
+
   private:
+
+    mutable std::vector<std::vector<entt::entity>> buildings;
+    friend BuildingSystem; // the building system is allowed to place and remove buildings
+
     ivec2 prevTileUnderCursor = ivec2(0); // used by tileUnderCursor() as optimization
 
     void transformOutlines();
 
     void calculateLatLonOutlines();
+
 };
 
 #endif

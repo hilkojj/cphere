@@ -22,13 +22,13 @@ ShipWake::ShipWake()
     }
     for (int i = 0; i < NR_OF_LINES; i++)
     {
-        mesh->setVec3(vec3(0), i * 2, 0);
-        mesh->setVec3(vec3(0), i * 2 + 1, 0);
+        mesh->setVec(vec3(0), i * 2, 0);
+        mesh->setVec(vec3(0), i * 2 + 1, 0);
 
         float y = i / (NR_OF_LINES - 1.);
 
-        mesh->setVec2(vec2(0, y), i * 2, 3);
-        mesh->setVec2(vec2(1, y), i * 2 + 1, 3);
+        mesh->setVec(vec2(0, y), i * 2, 3);
+        mesh->setVec(vec2(1, y), i * 2 + 1, 3);
     }
     VertBuffer::uploadSingleMesh(mesh);
 }
@@ -55,8 +55,8 @@ void ShipWake::render(DebugLineRenderer &lineRenderer, vec3 &pos, double deltaTi
     {
         for (int i = NR_OF_LINES - 1; i >= 1; i--)
         {
-            mesh->setVec3(mesh->getVec3(i * 2 - 2, 0), i * 2, 0);
-            mesh->setVec3(mesh->getVec3(i * 2 - 1, 0), i * 2 + 1, 0);
+            mesh->setVec(mesh->getVec<vec3>(i * 2 - 2, 0), i * 2, 0);
+            mesh->setVec(mesh->getVec<vec3>(i * 2 - 1, 0), i * 2 + 1, 0);
         }
         // memcpy(&mesh->vertices[2], &mesh->vertices[0], sizeof(float) * mesh->attributes.getVertSize() * (NR_OF_LINES - 1) * 2);
 
@@ -64,17 +64,17 @@ void ShipWake::render(DebugLineRenderer &lineRenderer, vec3 &pos, double deltaTi
     }
     // set first line position to ship position
     vec3 beginPos = pos + normalize(dir) * float(1.2);
-    mesh->setVec3(beginPos + dirTangent * vec3(.1), 0, 0);
-    mesh->setVec3(beginPos - dirTangent * vec3(.1), 1, 0);
+    mesh->setVec(beginPos + dirTangent * vec3(.1), 0, 0);
+    mesh->setVec(beginPos - dirTangent * vec3(.1), 1, 0);
 
-    // lineRenderer.line(mesh->getVec3(0, 0), mesh->getVec3(0, 0) + vec3(0, 10, 0), mu::Z);
-    // lineRenderer.line(mesh->getVec3(1, 0), mesh->getVec3(1, 0) + vec3(0, 10, 0), mu::Z);
+    // lineRenderer.line(mesh->getVec<vec3>(0, 0), mesh->getVec<vec3>(0, 0) + vec3(0, 10, 0), mu::Z);
+    // lineRenderer.line(mesh->getVec<vec3>(1, 0), mesh->getVec<vec3>(1, 0) + vec3(0, 10, 0), mu::Z);
 
     for (int i = 1; i < NR_OF_LINES; i++)
     {
         // note: loop starts at second line! (i = 1)
 
-        vec3 p0 = mesh->getVec3(i * 2, 0), p1 = mesh->getVec3(i * 2 + 1, 0);
+        vec3 p0 = mesh->getVec<vec3>(i * 2, 0), p1 = mesh->getVec<vec3>(i * 2 + 1, 0);
 
 
         // lineRenderer.line(p0, p0 + vec3(0, 4, 0), mu::Y);
@@ -84,8 +84,8 @@ void ShipWake::render(DebugLineRenderer &lineRenderer, vec3 &pos, double deltaTi
 
         float speed = i == 1 ? 5. : (i == 2 ? 3. : 1.5);
 
-        mesh->setVec3(p0 + lineTangent * vec3(speed * deltaTime), i * 2, 0);
-        mesh->setVec3(p1 - lineTangent * vec3(speed * deltaTime), i * 2 + 1, 0);
+        mesh->setVec(p0 + lineTangent * vec3(speed * deltaTime), i * 2, 0);
+        mesh->setVec(p1 - lineTangent * vec3(speed * deltaTime), i * 2 + 1, 0);
     }
 
     // temp:
