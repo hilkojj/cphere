@@ -195,7 +195,7 @@ void generateEarth(Planet *earth)
         },
 
         // nr of islands:
-        7,
+        1,
 
         // Earth mesh generator:
         [&]() {

@@ -23,7 +23,6 @@
 #include "level/graphics/ship_wake.h"
 
 #include "level/level.h"
-#include "level/ecs/ships.h"
 
 #include <fstream>
 
@@ -41,9 +40,9 @@ class LevelScreen : public Screen
     bool camPlanetMode = true;
 
     DebugLineRenderer lineRenderer;
-    SharedTexture seaNormalMap, seaDUDV, caustics, sand, foamTexture, seaWaves, shipTexture, pineTexture;
+    SharedTexture caustics, sand, foamTexture, seaWaves, shipTexture;
     SharedTexArray terrainTextures;
-    SharedMesh atmosphereMesh, shipMesh, pineMesh;
+    SharedMesh atmosphereMesh, shipMesh;
 
     ShipWake shipWake;
 
@@ -62,7 +61,6 @@ class LevelScreen : public Screen
           sand(Texture::fromDDSFile("assets/textures/tc_sand.dds")),
           foamTexture(Texture::fromDDSFile("assets/textures/tc_foam.dds")),
           shipTexture(Texture::fromDDSFile("assets/textures/cogship.dds")),
-          pineTexture(Texture::fromDDSFile("assets/textures/pine_tree.dds")),
 
           seaWaves(Texture::fromDDSFile("assets/textures/sea_waves.dds")),
 
@@ -121,15 +119,9 @@ class LevelScreen : public Screen
 
         {
             SharedModel model = JsonModelLoader::fromUbjsonFile("assets/models/cogship.ubj", &posTexNorAttrs)[0];
-            pineMesh = model->parts[0].mesh;
-        }
-        {
-            SharedModel model = JsonModelLoader::fromUbjsonFile("assets/models/pine.ubj", &posTexNorAttrs)[0];
             shipMesh = model->parts[0].mesh;
+            VertBuffer::uploadSingleMesh(shipMesh);
         }
-        auto buffer = VertBuffer::with(posTexNorAttrs);
-        buffer->add(shipMesh)->add(pineMesh)->upload(true);
-
         MouseInput::setLockedMode(!camPlanetMode);
     }
 
@@ -150,7 +142,9 @@ class LevelScreen : public Screen
         auto &time = lvl->time;
         auto &earth = lvl->earth;
 
+        #ifndef EMSCRIPTEN
         ShaderProgram::reloadFromFile = int(time * 2.) % 2 == 0;//KeyInput::justPressed(GLFW_KEY_F5);
+        #endif
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -204,7 +198,7 @@ class LevelScreen : public Screen
             shipTexture->bind(0, shipShader, "shipTexture");
             glCullFace(GL_FRONT);
 
-            lvl->registry.view<Ship>().each([&](Ship &ship) {
+            for (auto &ship : lvl->ships) {
                 auto worldTrans = ship.transform;
                 vec3 localSunDir = vec4(sunDir, 1) * worldTrans;
                 glUniform3f(shipShader.location("sunDir"), localSunDir.x, localSunDir.y, localSunDir.z);
@@ -212,13 +206,9 @@ class LevelScreen : public Screen
                 shipMesh->render();
 
                 shipPos = earth.lonLatTo3d(ship.lonLat.x, ship.lonLat.y, 0);
-            });
+            };
             glCullFace(GL_BACK);
         }
-
-//        {
-//            lvl->entities.view<Building,
-//        }
 
         reflectionBuffer.unbind();
         cam.far_ = prevCamFar;
@@ -285,17 +275,19 @@ class LevelScreen : public Screen
         }
         // DONE RENDERING ISLANDS
 
+//        BuildingRenderingSystem::active->render(newDeltaTime, lvl);
+
         shipShader.use();
         glUniform1i(shipShader.location("reflection"), 0);
         shipTexture->bind(0, shipShader, "shipTexture");
 
-        lvl->registry.view<Ship>().each([&](Ship &ship) {
+        for (auto &ship : lvl->ships) {
             auto &worldTrans = ship.transform;
             vec3 localSunDir = vec4(sunDir, 1) * worldTrans;
             glUniform3f(shipShader.location("sunDir"), localSunDir.x, localSunDir.y, localSunDir.z);
             glUniformMatrix4fv(shipShader.location("mvp"), 1, GL_FALSE, &(cam.combined * worldTrans)[0][0]);
             shipMesh->render();
-        });
+        };
 
         // RENDER WATER:
         earthShader.use();
@@ -416,15 +408,16 @@ class LevelScreen : public Screen
         std::vector<WayPoint> path;
         glLineWidth(3.);
 
-        lvl->registry.view<Ship, ShipPath>().each([&](Ship &ship, ShipPath &pathC) {
-            auto &path = pathC.points;
+        for (auto &ship : lvl->ships) {
+            if (!ship.path) continue;
+            auto &path = ship.path->points;
             vec3 prev = path[0].position;
             for (auto &n : path)
             {
                 lineRenderer.line(prev * float(1.005), n.position * float(1.005), mu::Y);
                 prev = n.position;
             }
-        });
+        };
         
         if (mouseOnEarth && KeyInput::pressed(GLFW_KEY_P) && lvl->seaGraph.findPath(vec2(0, 0), mouseLonLat, path))
         {

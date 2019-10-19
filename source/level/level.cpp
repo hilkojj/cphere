@@ -1,8 +1,9 @@
 #include "level.h"
 #include "../planet_generation/earth_generator.h"
 #include "files/file.h"
-#include "ecs/ships.h"
-#include "ecs/buildings/buildings.h"
+//#include "ecs/buildings/buildings.h"
+//#include "ecs/buildings/rendering/building_rendering.h"
+#include "systems/ships_system.h"
 
 Level::Level(const char *loadFilePath)
     :   earth("earth", Sphere(EARTH_RADIUS)),
@@ -11,7 +12,8 @@ Level::Level(const char *loadFilePath)
 
             new ShipsSystem(),
             new ShipPathSystem(),
-            new BuildingSystem(this)
+//            new BuildingRenderingSystem(this),
+//            new BuildingSystem(this),
         })
 {
     if (loadFilePath)
@@ -30,7 +32,7 @@ Level::Level(const char *loadFilePath)
     seaGraph.generate();
 
     {   // tmp
-        registry.assign<Ship>(registry.create(), vec2(30, 30));
+        ships.push_back({ vec2(30, 30) });
     }
 }
 
@@ -57,5 +59,6 @@ void Level::update(double deltaTime)
 
 Level::~Level()
 {
-    for (auto sys : systems) delete sys;
+    // TODO: deleting abstract class can cause memory leaks etc.
+//    for (auto sys : systems) delete sys;
 }

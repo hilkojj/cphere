@@ -89,10 +89,10 @@ bool WaveRenderer::createWave(IslandWaves &islWaves, Polygon &outline, Polygon &
 
         vec3 p3d0 = earth.lonLatTo3d(p0.x, p0.y, 0), p3d1 = earth.lonLatTo3d(p1.x, p1.y, 0);
 
-        mesh->setVec(p3d0, i * 2, 0);
-        mesh->setVec(p3d1, i * 2, 3);
-        mesh->setVec(p3d0, i * 2 + 1, 0);
-        mesh->setVec(p3d1, i * 2 + 1, 3);
+        mesh->set(p3d0, i * 2, 0);
+        mesh->set(p3d1, i * 2, 3);
+        mesh->set(p3d0, i * 2 + 1, 0);
+        mesh->set(p3d1, i * 2 + 1, 3);
         mesh->setFloat(0, i * 2, 6);
         mesh->setFloat(1, i * 2 + 1, 6);
 

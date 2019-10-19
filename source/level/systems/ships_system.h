@@ -1,38 +1,12 @@
 
-#ifndef SHIPS_H
-#define SHIPS_H
+#ifndef SHIPS_SYSTEM_H
+#define SHIPS_SYSTEM_H
 
 #include "utils/math/interpolation.h"
 #include "utils/math_utils.h"
 #include "../level.h"
 #include "input/key_input.h"
 #include "input/mouse_input.h"
-
-struct Ship
-{
-  public:
-    vec2 lonLat;    // longitude and latitude of the ship
-    mat4 transform; // transform of the ship. Rotation, (scale) and position.
-    vec3 
-        up,     // the normal of the planet at the position of this ship, aka normalized(pos)
-        dir,    // direction the ship is pointing towards
-        right,  // cross of up and dir
-        pos,    // position of the ship in 3d
-        goal;   // where this ship is moving to
-
-    bool initialized = false;
-
-    float currentVelocity = 0., maxVelocity = 5.; // velocity in (distance-unit)/s
-
-    float turning = 0.; // between 0-1, 0 = moving in straight line, 1 = making a turn
-    int lastTurnDir = 0; // the direction the last turn, 1 -> clockwise, -1 -> counterclockwise
-};
-
-struct ShipPath
-{
-    std::vector<WayPoint> points;
-    float progress = 0.;
-};
 
 class ShipsSystem : public LevelSystem
 {
@@ -49,8 +23,8 @@ class ShipsSystem : public LevelSystem
   public:
     void update(double deltaTime, Level *lvl) override
     {
-        lvl->registry.view<Ship>().each([&](auto entity, Ship &ship) {
-
+        for (Ship &ship : lvl->ships)
+        {
             if (!ship.initialized) initializeShip(ship, lvl);
 
             vec3 goalDir = normalize(ship.goal - ship.pos);
@@ -60,7 +34,7 @@ class ShipsSystem : public LevelSystem
             int turn = 0;// 1 -> rotate clockwise, 0 -> dont turn, -1 -> rotate counterclockwise
 
             float distToGoal = length(ship.goal - ship.pos);
-            
+
             if (distToGoal > .1) // ship is currently moving -> update the Direction of the ship
             {
                 // this needs some visualization in order to understand this:
@@ -114,6 +88,9 @@ class ShipsSystem : public LevelSystem
 
             ship.lonLat = vec2(lvl->earth.longitude(ship.pos.x, ship.pos.z), lvl->earth.latitude(ship.pos.y));
 
+            std::cout << "Ship\n";
+            std::cout << &ship << "\n\n";
+
             // tmp:
             if (MouseInput::justPressed(GLFW_MOUSE_BUTTON_RIGHT))
             {
@@ -122,8 +99,7 @@ class ShipsSystem : public LevelSystem
                 {
                     std::vector<WayPoint> points;
                     lvl->seaGraph.findPath(ship.lonLat, goalLonLat, points);
-
-                    lvl->registry.assign_or_replace<ShipPath>(entity, points);
+                    ship.path = {points};
                 }
             }
 
@@ -131,8 +107,7 @@ class ShipsSystem : public LevelSystem
             lvl->lineRenderer->line(ship.pos, ship.pos + ship.dir * float(20.), mu::Z);
             lvl->lineRenderer->line(ship.pos, ship.pos + ship.up * float(20.), mu::Y);
             lvl->lineRenderer->line(ship.pos, ship.pos + ship.right * float(20.), mu::X);
-            // lvl->lineRenderer->line(ship.pos, ship.pos - normalize(eigelijkNewDir) * float(10.), mu::X + mu::Y);
-        });
+        };
     }
 };
 
@@ -146,21 +121,22 @@ class ShipPathSystem : public LevelSystem
 
     void update(double deltaTime, Level *lvl) override
     {
-        lvl->registry.view<Ship, ShipPath>().each([&](auto entity, Ship &ship, ShipPath &path) {
+        for (auto &ship : lvl->ships) {
+            if (!ship.path) continue;
 
-            if (path.progress == 0.) path.progress = ship.currentVelocity / 10.; // maintain lead for goal on ship
+            if (ship.path->progress == 0.) ship.path->progress = ship.currentVelocity / 10.; // maintain lead for goal on ship
 
-            path.progress += (deltaTime * 2. * (1. - clamp(length(ship.goal - ship.pos) * .1, 0., 1.)));
-            if (path.progress >= path.points.size() - 1)
+            ship.path->progress += (deltaTime * 2. * (1. - clamp(length(ship.goal - ship.pos) * .1, 0., 1.)));
+            if (ship.path->progress >= ship.path->points.size() - 1)
             {
-                lvl->registry.remove<ShipPath>(entity);
+                ship.path = {};
                 return;
             }
 
-            int wp0 = path.progress, wp1 = wp0 + 1;
-            float lerp = path.progress - wp0;
-            ship.goal = mix(path.points[wp0].position, path.points[wp1].position, lerp);
-        });
+            int wp0 = ship.path->progress, wp1 = wp0 + 1;
+            float lerp = ship.path->progress - wp0;
+            ship.goal = mix(ship.path->points[wp0].position, ship.path->points[wp1].position, lerp);
+        };
     }
 };
 

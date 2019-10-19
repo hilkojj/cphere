@@ -274,14 +274,14 @@ void Island::createMesh()
 
     for (int i = 0; i < nrOfVerts; i++)
     {
-        mesh->setVec(vertexPositionsPlanet[i], i, posOffset);     // position
-        mesh->setVec(vertexNormalsPlanet[i], i, norOffset);       // normal
+        mesh->set(vertexPositionsPlanet[i], i, posOffset);     // position
+        mesh->set(vertexNormalsPlanet[i], i, norOffset);       // normal
 
-        mesh->setVec(
-            vec2(vertIToX(i), vertIToY(i)) / vec2(50), i, uvOffset    // texCoords
+        mesh->set(
+                vec2(vertIToX(i), vertIToY(i)) / vec2(50), i, uvOffset    // texCoords
         );
 
-        mesh->setVec(textureMap[i], i, texOffset);    // texture blending
+        mesh->set(textureMap[i], i, texOffset);    // texture blending
     }
 
     int i = 0;

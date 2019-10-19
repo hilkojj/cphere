@@ -21,10 +21,10 @@ CloudRenderer::CloudRenderer(Planet *earth)
         std::vector<float>(nrOfSpawnpoints * 4 * 3)
     );
     for (int i = 0; i < nrOfSpawnpoints; i++)
-        spawnpoints.setVec(
-            vec3(mu::random() - .5, (mu::random() - .5) * .3, mu::random() - .5)
-            * vec3(1 + i * .2) * vec3(110.),
-            i, 0
+        spawnpoints.set(
+                vec3(mu::random() - .5, (mu::random() - .5) * .3, mu::random() - .5)
+                * vec3(1 + i * .2) * vec3(110.),
+                i, 0
         );
     quad->vertBuffer->uploadPerInstanceData(spawnpoints, particlesPerOffset);
 }

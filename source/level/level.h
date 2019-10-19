@@ -5,9 +5,8 @@
 
 #include "planet.h"
 #include "sea_graph.h"
-#include "../entt.hpp"
-#include "ecs/buildings/blueprints.h"
 #include "graphics/3d/debug_line_renderer.h"
+#include "ship.h"
 
 const float EARTH_RADIUS = 150, ATMOSPHERE_RADIUS = 198;
 
@@ -34,15 +33,15 @@ class Level
 
     Planet earth;
     SeaGraph seaGraph;
-    entt::registry registry;
 
     std::vector<LevelSystem*> systems;
+    std::vector<Ship> ships;
 
     float time = 0;
 
     void update(double deltaTime);
 
-    // the following variables should be removed from this class as they're graphics related:
+    // consider removing the following variables because they're graphics related:
     DebugLineRenderer *lineRenderer;
     Camera *cam;
 
