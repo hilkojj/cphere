@@ -11,5 +11,6 @@ uniform sampler2D buildingTexture;
 void main()
 {
     color = texture(buildingTexture, v_uv);
+    if (color.a <= .7) discard;
     color.rgb *= light;
 }

@@ -7,7 +7,7 @@
 namespace BLUEPRINTS
 {
 
-    void create_PINE_TREE(Building b)
+    void create_PINE_TREE(Building &b)
     {
         static BuildingMesh *buildingMesh = NULL;
 
@@ -18,7 +18,7 @@ namespace BLUEPRINTS
             buildingMesh = new BuildingMesh{};
             auto &variant = buildingMesh->variants.emplace_back();
             {
-                SharedModel model = JsonModelLoader::fromUbjsonFile("assets/models/pine.ubj", &defaultBuildingVertAttrs)[0];
+                SharedModel model = JsonModelLoader::fromUbjsonFile("assets/models/pine.ubj", &DEFAULT_BUILDING_VERT_ATTRS)[0];
                 auto &pineMesh = model->parts[0].mesh;
                 VertBuffer::uploadSingleMesh(pineMesh);
                 variant.lodMeshes.push_back(pineMesh);
@@ -31,7 +31,7 @@ namespace BLUEPRINTS
         b->renderBuilding = rb;
     }
 
-    void create_OAK_TREE(Building b)
+    void create_OAK_TREE(Building &b)
     {
         std::cout << "create Oak Tree\n";
     }

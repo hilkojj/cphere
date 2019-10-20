@@ -29,6 +29,20 @@ Level::Level(const char *loadFilePath)
         File::writeBinary("level.save", data);
     }
 
+    for (Island *isl : earth.islands)
+    {
+        for (int i = 0; i < isl->width * isl->height; i++)
+        {
+            int x = mu::randomInt(isl->width - 10), y = mu::randomInt(isl->height - 10);
+
+            auto tree = Building(new Building_(&BLUEPRINTS::PINE_TREE, x, y, 0, isl));
+            BLUEPRINTS::PINE_TREE.generator(tree);
+
+            if (BuildingsSystem::active->canPlace(tree))
+                BuildingsSystem::active->place(tree);
+        }
+    }
+
     seaGraph.generate();
 
     {   // tmp

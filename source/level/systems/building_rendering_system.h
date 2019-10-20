@@ -54,9 +54,12 @@ class BuildingRenderingSystem : public LevelSystem
     void update(double deltaTime, Level *lvl) override
     {}
 
-    void render(double deltaTime, Level *lvl)
+    void render(double deltaTime, Level *lvl, vec3 &sunDir)
     {
         defaultShader.use();
+        glUniformMatrix4fv(defaultShader.location("view"), 1, GL_FALSE, &lvl->cam->combined[0][0]);
+        glUniform3f(defaultShader.location("sunDir"), sunDir.x, sunDir.y, sunDir.z);
+
         for (Island *isl : lvl->earth.islands)
         {
             if (!isl->isInView || !buildingMeshes.count(isl)) continue;
@@ -86,6 +89,7 @@ class BuildingRenderingSystem : public LevelSystem
 
                         for (auto &b : var.instancesToAdd)
                         {
+                            b->renderBuilding->instanceIndex = var.instances.size();
                             var.instanceTransforms.addVertices(1);
                             var.instanceTransforms.setMat<mat4>(b->transform, var.instances.size(), 0);
                             var.instances.push_back(b);
@@ -96,7 +100,7 @@ class BuildingRenderingSystem : public LevelSystem
                         var.instancesToRemove.clear();
                         std::cout << var.instances.size() << "\n";
                     }
-//                    vertBuffer->usePerInstanceData(var.instancedVertDataId);
+                    vertBuffer->usePerInstanceData(var.instancedVertDataId);
                     var.texture->bind(0, defaultShader, "buildingTexture");
                     var.lodMeshes[0]->renderInstances(var.instances.size());
                 }

@@ -15,6 +15,8 @@
 class Planet;
 class BuildingsSystem;
 
+static const float ISLAND_ROTATION = 30;
+
 class Island
 {
 
@@ -39,25 +41,27 @@ class Island
 
     void toBinary(std::vector<uint8> &out) const;
 
-    int xyToVertI(int x, int y);
+    int xyToVertI(int x, int y) const;
 
-    int vertIToX(int i);
+    int vertIToX(int i) const;
 
-    int vertIToY(int i);
+    int vertIToY(int i) const;
 
-    bool tileAtSeaFloor(int x, int y);
+    bool tileAtSeaFloor(int x, int y) const;
 
-    bool tileAboveSea(int x, int y);
+    bool tileAboveSea(int x, int y) const;
 
-    float tileSteepness(int x, int y);
+    float tileSteepness(int x, int y) const;
 
-    float distToHeight(int x, int y, float minHeight, float maxHeight, int maxDist);
+    float distToHeight(int x, int y, float minHeight, float maxHeight, int maxDist) const;
 
-    bool containsLonLatPoint(float lon, float lat);
+    bool containsLonLatPoint(float lon, float lat) const;
 
-    bool tileUnderCursor(ivec2 &out, const Camera *cam);
+    bool tileUnderCursor(ivec2 &out, const Camera *cam) const;
 
     bool containsTile(int x, int y) const;
+
+    vec3 tileCenter(int x, int y) const;
 
     // returns 0-1 based on amount of vertices that are underwater
     float percentageUnderwater() const;
@@ -125,7 +129,7 @@ class Island
     mutable std::vector<std::vector<Building>> buildingsGrid;
     friend BuildingsSystem; // the building system is allowed to place and remove buildings
 
-    ivec2 prevTileUnderCursor = ivec2(0); // used by tileUnderCursor() as optimization
+    mutable ivec2 prevTileUnderCursor = ivec2(0); // used by tileUnderCursor() as optimization
 
     void transformOutlines();
 

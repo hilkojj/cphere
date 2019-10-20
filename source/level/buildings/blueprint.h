@@ -5,7 +5,7 @@
 #include <string>
 #include <functional>
 
-typedef std::function<void(Building)> BuildingGenerator;
+typedef std::function<void(Building&)> BuildingGenerator;
 
 struct Blueprint
 {
@@ -28,14 +28,14 @@ struct Blueprint
  * Each blueprint should have a generator function that is defined in building_generators.cpp
  * The generator function should look like this:
  *
- * void BLUEPRINTS::create_PINE_TREE(Building*);
+ * void BLUEPRINTS::create_PINE_TREE(Building&);
  *
  * This function is responsible for initializing the building.
  * For example: create_PINE_TREE() will add the mesh of a Pine Tree to the 'building'. (yes, trees are buildings)
  */
 namespace BLUEPRINTS {
 
-#define BP(code_name, name, width, height, needsFlatGround) void create_##code_name(Building);\
+#define BP(code_name, name, width, height, needsFlatGround) void create_##code_name(Building&);\
                                                             inline Blueprint code_name = Blueprint{name, width, height, create_##code_name, needsFlatGround};
 #include "blueprint_list.inc"
 #undef BP

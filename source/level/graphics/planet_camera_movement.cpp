@@ -64,7 +64,7 @@ void PlanetCameraMovement::update(double deltaTime, Planet *plttt)
     if (zoomVelocity > .0 || horizonDistance < 0.) updateHorizonDistance();
 
     cam->position = mu::Y * vec3(5. + 235 * (1. - actualZoom));
-    cam->position.z += actualZoom * 25.;
+    cam->position.z += actualZoom * 23.5;
 
     cam->lookAt(mu::ZERO_3, -mu::Z);
 

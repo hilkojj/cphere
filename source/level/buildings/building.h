@@ -10,11 +10,19 @@ typedef std::shared_ptr<Building_> Building;
 
 #include "blueprint.h"
 
-static const VertAttributes defaultBuildingVertAttrs = VertAttributes()
+static const VertAttributes
+    DEFAULT_BUILDING_VERT_ATTRS = VertAttributes()
         .add_(VertAttributes::POSITION)
         .add_(VertAttributes::NORMAL)
         .add_(VertAttributes::TANGENT)
-        .add_(VertAttributes::TEX_COORDS);
+        .add_(VertAttributes::TEX_COORDS),
+
+    BUILDING_TRANSFORM_VERT_ATTRS = VertAttributes()
+        .add_(VertAttributes::TRANSFORM_COL_A)
+        .add_(VertAttributes::TRANSFORM_COL_B)
+        .add_(VertAttributes::TRANSFORM_COL_C)
+        .add_(VertAttributes::TRANSFORM_COL_D);
+
 
 class BuildingRenderingSystem;
 class BuildingsSystem;
@@ -30,7 +38,7 @@ private:
     friend BuildingRenderingSystem;
 
     int instancedVertDataId = -1;
-    VertData instanceTransforms = VertData(VertAttributes().add_(VertAttributes::TRANSFORM), std::vector<float>());
+    VertData instanceTransforms = VertData(BUILDING_TRANSFORM_VERT_ATTRS, std::vector<float>());
     std::vector<Building>
         instances,
         instancesToAdd,
@@ -65,34 +73,14 @@ struct Building_
 
     std::optional<RenderBuilding> renderBuilding;
 
-    Building_(Blueprint *bp, int x, int y, int rotation, Island *isl)
-
-        : bp(bp), tiles(bp->width * bp->height)
-    {
-        move(x, y, rotation, isl);
-    }
+    Building_(Blueprint *bp, int x, int y, int rotation, Island *isl);
 
   private:
     friend BuildingsSystem;
     /**
      * DONT CALL THIS FUNCTION AFTER PLACING THE BUILDING!
      */
-    void move(int x, int y, int rotation, Island *isl)
-    {
-        int i = 0;
-        bool rot = rotation % 2 == 0;
-        for (int x0 = 0; x0 < bp->width; x0++)
-            for (int y0 = 0; y0 < bp->height; y0++)
-                tiles[i++] = ivec2(x + (rot ? x0 : y0), y + (rot ? y0 : x0));
-
-        this->rotation = rotation;
-        this->isl = isl;
-        if (isl)
-        {
-            // todo: calculate transform:
-            this->transform = mat4(1);
-        }
-    }
+    void move(int x, int y, int rotation, Island *isl);
 };
 
 #endif

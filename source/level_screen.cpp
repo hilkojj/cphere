@@ -242,11 +242,15 @@ class LevelScreen : public Screen
         // ship->render();
 
         // render waves to alpha channel of underwaterBuffer
+        cam.far_ = planetCamMovement.horizonDistance;
+        cam.update();
         waveRenderer->render(newDeltaTime, cam.combined);
 
-        shipWakeShader.use();
-        glUniformMatrix4fv(shipWakeShader.location("viewTrans"), 1, GL_FALSE, &(cam.combined[0][0]));
-        shipWake.render(lineRenderer, shipPos, newDeltaTime);
+//        shipWakeShader.use();
+//        glUniformMatrix4fv(shipWakeShader.location("viewTrans"), 1, GL_FALSE, &(cam.combined[0][0]));
+//        shipWake.render(lineRenderer, shipPos, newDeltaTime);
+        cam.far_ = prevCamFar;
+        cam.update();
 
         underwaterBuffer.unbind();
 
@@ -276,7 +280,6 @@ class LevelScreen : public Screen
         }
         // DONE RENDERING ISLANDS
 
-        BuildingRenderingSystem::active->render(newDeltaTime, lvl);
 
         shipShader.use();
         glUniform1i(shipShader.location("reflection"), 0);
@@ -290,16 +293,19 @@ class LevelScreen : public Screen
             shipMesh->render();
         };
 
+        glEnable(GL_BLEND);
+
+        BuildingRenderingSystem::active->render(newDeltaTime, lvl, sunDir);
+
         // RENDER WATER:
         earthShader.use();
-        glEnable(GL_BLEND);
         foamTexture->bind(0, earthShader, "foamTexture");
         seaWaves->bind(1, earthShader, "seaWaves");
         underwaterBuffer.colorTexture->bind(2, earthShader, "underwaterTexture");
         underwaterBuffer.depthTexture->bind(3, earthShader, "underwaterDepthTexture");
         reflectionBuffer.colorTexture->bind(4, earthShader, "reflectionTexture");
         glm::mat4 mvp = cam.combined;
-    
+
         glUniformMatrix4fv(earthShader.location("MVP"), 1, GL_FALSE, &mvp[0][0]);
         glUniform1f(earthShader.location("time"), time);
         glUniform2f(earthShader.location("scrSize"), gu::widthPixels, gu::heightPixels);
@@ -339,9 +345,9 @@ class LevelScreen : public Screen
         glDisable(GL_BLEND);
 
         lineRenderer.projection = cam.combined;
-        // lineRenderer.line(glm::vec3(-300, 0, 0), glm::vec3(300, 0, 0), mu::X);
-        // lineRenderer.line(glm::vec3(0, -300, 0), glm::vec3(0, 300, 0), mu::Y);
-        // lineRenderer.line(glm::vec3(0, 0, -300), glm::vec3(0, 0, 300), mu::Z);
+         lineRenderer.line(glm::vec3(-300, 0, 0), glm::vec3(300, 0, 0), mu::X);
+         lineRenderer.line(glm::vec3(0, -300, 0), glm::vec3(0, 300, 0), mu::Y);
+         lineRenderer.line(glm::vec3(0, 0, -300), glm::vec3(0, 0, 300), mu::Z);
 
         // lineRenderer.line(shipPos, shipPos + vec3(0, 10, 0), mu::X);
         lvl->update(newDeltaTime);
@@ -353,53 +359,36 @@ class LevelScreen : public Screen
         {
             // std::cout << hoveredIsland->percentageUnderwater() << "\n";
             lineRenderer.line(
-                hoveredIsland->vertexPositionsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y)],
-                hoveredIsland->vertexPositionsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y)] + hoveredIsland->vertexNormalsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y)] * vec3(10),
-                mu::X
-            );
-            lineRenderer.line(
-                hoveredIsland->vertexPositionsPlanet[hoveredIsland->xyToVertI(hoveredTile.x + 1, hoveredTile.y)],
-                hoveredIsland->vertexPositionsPlanet[hoveredIsland->xyToVertI(hoveredTile.x + 1, hoveredTile.y)] + hoveredIsland->vertexNormalsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y)] * vec3(10),
-                mu::X
-            );
-
-            lineRenderer.line(
-                hoveredIsland->vertexPositionsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y + 1)],
-                hoveredIsland->vertexPositionsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y + 1)] + hoveredIsland->vertexNormalsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y)] * vec3(10),
-                mu::X
-            );
-
-            lineRenderer.line(
-                hoveredIsland->vertexPositionsPlanet[hoveredIsland->xyToVertI(hoveredTile.x + 1, hoveredTile.y + 1)],
-                hoveredIsland->vertexPositionsPlanet[hoveredIsland->xyToVertI(hoveredTile.x + 1, hoveredTile.y + 1)] + hoveredIsland->vertexNormalsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y)] * vec3(10),
+                hoveredIsland->tileCenter(hoveredTile.x, hoveredTile.y),
+                hoveredIsland->tileCenter(hoveredTile.x, hoveredTile.y) + hoveredIsland->vertexNormalsPlanet[hoveredIsland->xyToVertI(hoveredTile.x, hoveredTile.y)] * vec3(10),
                 mu::X
             );
         }
 
-        for (Island *isl : lvl->earth.islands)
-        {
-            for (int x = 0; x < isl->width; x++)
-            {
-                for (int y = 0; y < isl->height; y++)
-                {
-                    auto b = isl->getBuilding(x, y);
-                    if (b)
-                    {
-                        vec3 n = isl->vertexNormalsPlanet[isl->xyToVertI(x, y)] * float (.1);
-                        lineRenderer.line(
-                                isl->vertexPositionsPlanet[isl->xyToVertI(x, y)] + n,
-                                isl->vertexPositionsPlanet[isl->xyToVertI(x + 1, y + 1)] + n,
-                                mu::X
-                        );
-                        lineRenderer.line(
-                                isl->vertexPositionsPlanet[isl->xyToVertI(x + 1, y)] + n,
-                                isl->vertexPositionsPlanet[isl->xyToVertI(x, y + 1)] + n,
-                                mu::X
-                        );
-                    }
-                }
-            }
-        }
+//        for (Island *isl : lvl->earth.islands)
+//        {
+//            for (int x = 0; x < isl->width; x++)
+//            {
+//                for (int y = 0; y < isl->height; y++)
+//                {
+//                    auto b = isl->getBuilding(x, y);
+//                    if (b)
+//                    {
+//                        vec3 n = isl->vertexNormalsPlanet[isl->xyToVertI(x, y)] * float (.1);
+//                        lineRenderer.line(
+//                                isl->vertexPositionsPlanet[isl->xyToVertI(x, y)] + n,
+//                                isl->vertexPositionsPlanet[isl->xyToVertI(x + 1, y + 1)] + n,
+//                                mu::X
+//                        );
+//                        lineRenderer.line(
+//                                isl->vertexPositionsPlanet[isl->xyToVertI(x + 1, y)] + n,
+//                                isl->vertexPositionsPlanet[isl->xyToVertI(x, y + 1)] + n,
+//                                mu::X
+//                        );
+//                    }
+//                }
+//            }
+//        }
 
         vec2 mouseLonLat(0);
         bool mouseOnEarth = earth.cursorToLonLat(&cam, mouseLonLat);
@@ -407,7 +396,6 @@ class LevelScreen : public Screen
         Node nearestToMouse = lvl->seaGraph.nearest(mouseLonLat);
 
         std::vector<WayPoint> path;
-        glLineWidth(3.);
 
         for (auto &ship : lvl->ships) {
             if (!ship.path) continue;
@@ -429,7 +417,6 @@ class LevelScreen : public Screen
                 prev = n.position;
             }
         }
-        glLineWidth(1.);
 
         // for (auto &n : seaGraph.nodes)
         // {
