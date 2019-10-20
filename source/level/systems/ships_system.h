@@ -88,9 +88,6 @@ class ShipsSystem : public LevelSystem
 
             ship.lonLat = vec2(lvl->earth.longitude(ship.pos.x, ship.pos.z), lvl->earth.latitude(ship.pos.y));
 
-            std::cout << "Ship\n";
-            std::cout << &ship << "\n\n";
-
             // tmp:
             if (MouseInput::justPressed(GLFW_MOUSE_BUTTON_RIGHT))
             {

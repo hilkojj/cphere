@@ -3,6 +3,7 @@
 #define SHIP_H
 
 #include <vector>
+#include <optional>
 #include "utils/math_utils.h"
 #include "sea_graph.h"
 

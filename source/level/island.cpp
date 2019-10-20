@@ -16,7 +16,7 @@ Island::Island(int width, int height, Planet *plt)
       vertexPositionsPlanet(nrOfVerts, vec3()),
       vertexPositionsOriginal(nrOfVerts, vec3()),
       textureMap(nrOfVerts, vec4()),
-      buildings(width, std::vector<entt::entity>(height, 0))
+      buildingsGrid(width, std::vector<Building>(height, NULL))
 {
     std::cout << "Creating island\n";
 }
@@ -378,7 +378,7 @@ float Island::tileSteepness(int x, int y)
     return maxHeight - minHeight;
 }
 
-entt::entity Island::getBuilding(int x, int y) const
+Building &Island::getBuilding(int x, int y) const
 {
-    return buildings[x][y];
+    return buildingsGrid[x][y];
 }

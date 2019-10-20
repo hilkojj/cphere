@@ -1,8 +1,8 @@
 #include "level.h"
 #include "../planet_generation/earth_generator.h"
 #include "files/file.h"
-//#include "ecs/buildings/buildings.h"
-//#include "ecs/buildings/rendering/building_rendering.h"
+#include "systems/buildings_system.h"
+#include "systems/building_rendering_system.h"
 #include "systems/ships_system.h"
 
 Level::Level(const char *loadFilePath)
@@ -12,8 +12,8 @@ Level::Level(const char *loadFilePath)
 
             new ShipsSystem(),
             new ShipPathSystem(),
-//            new BuildingRenderingSystem(this),
-//            new BuildingSystem(this),
+            new BuildingsSystem(this),
+            new BuildingRenderingSystem(this),
         })
 {
     if (loadFilePath)
@@ -59,6 +59,5 @@ void Level::update(double deltaTime)
 
 Level::~Level()
 {
-    // TODO: deleting abstract class can cause memory leaks etc.
-//    for (auto sys : systems) delete sys;
+    for (auto sys : systems) delete sys;
 }

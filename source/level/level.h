@@ -14,6 +14,9 @@ class Level;
 
 class LevelSystem
 {
+  public:
+    virtual ~LevelSystem() {}
+
   protected:
     float updateFrequency = 0; // update this system every n seconds. if n = 0 then update(deltaTime) is called, else update(n)
     float updateAccumulator = 0;
@@ -34,8 +37,8 @@ class Level
     Planet earth;
     SeaGraph seaGraph;
 
-    std::vector<LevelSystem*> systems;
     std::vector<Ship> ships;
+    std::vector<LevelSystem*> systems;
 
     float time = 0;
 

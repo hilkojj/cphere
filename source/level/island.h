@@ -8,11 +8,12 @@
 #include "graphics/3d/mesh.h"
 #include "graphics/camera.h"
 
+#include "buildings/building.h"
+
 #include "json.hpp"
-#include "../entt.hpp"
 
 class Planet;
-class BuildingSystem;
+class BuildingsSystem;
 
 class Island
 {
@@ -115,12 +116,14 @@ class Island
 
     void placeOnPlanet();
 
-    entt::entity getBuilding(int x, int y) const;
+    std::map<Blueprint*, std::vector<Building>> buildingsPerBlueprint;
+
+    Building &getBuilding(int x, int y) const;
 
   private:
 
-    mutable std::vector<std::vector<entt::entity>> buildings;
-    friend BuildingSystem; // the building system is allowed to place and remove buildings
+    mutable std::vector<std::vector<Building>> buildingsGrid;
+    friend BuildingsSystem; // the building system is allowed to place and remove buildings
 
     ivec2 prevTileUnderCursor = ivec2(0); // used by tileUnderCursor() as optimization
 

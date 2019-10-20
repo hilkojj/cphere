@@ -21,6 +21,7 @@
 #include "glm/gtx/rotate_vector.hpp"
 #include "utils/json_model_loader.h"
 #include "level/graphics/ship_wake.h"
+#include "level/systems/building_rendering_system.h"
 
 #include "level/level.h"
 
@@ -176,7 +177,7 @@ class LevelScreen : public Screen
         glm::vec3 sunDirZoomedOut = glm::vec3(glm::sin(time * .008), 0, glm::cos(time * .008));
         glm::vec3 sunDirZoomedIn = rotate(mu::Z, (planetCamMovement.lat - float(90.)) * mu::DEGREES_TO_RAD, mu::X);
         sunDirZoomedIn = rotate(sunDirZoomedIn, (planetCamMovement.lon + float(6.)) * mu::DEGREES_TO_RAD, mu::Y);
-        float closeSunDir = clamp((planetCamMovement.actualZoom - .35) * 3., 0., .8);
+        float closeSunDir = clamp((planetCamMovement.actualZoom - .35) * 3., 0., .7);
         glm::vec3 sunDir = sunDirZoomedOut * (1 - closeSunDir) + sunDirZoomedIn * closeSunDir;
         sunDir = normalize(sunDir);
 
@@ -275,7 +276,7 @@ class LevelScreen : public Screen
         }
         // DONE RENDERING ISLANDS
 
-//        BuildingRenderingSystem::active->render(newDeltaTime, lvl);
+        BuildingRenderingSystem::active->render(newDeltaTime, lvl);
 
         shipShader.use();
         glUniform1i(shipShader.location("reflection"), 0);
