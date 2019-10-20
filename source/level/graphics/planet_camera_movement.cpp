@@ -61,7 +61,6 @@ void PlanetCameraMovement::update(double deltaTime, Planet *plttt)
     actualZoom = actualZoom * (1. - deltaTime * 10.) + zoom * deltaTime * 10.;
 
     zoomVelocity = abs(prevActualZoom - actualZoom) / deltaTime;
-    if (zoomVelocity > .0 || horizonDistance < 0.) updateHorizonDistance();
 
     cam->position = mu::Y * vec3(5. + 235 * (1. - actualZoom));
     cam->position.z += actualZoom * 23.5;
@@ -81,6 +80,7 @@ void PlanetCameraMovement::update(double deltaTime, Planet *plttt)
     cam->up = transform * vec4(cam->up, 0);
 
     cam->update();
+    if (dragging || zoomVelocity > 0.) islandFrustumCulling();
 }
 
 void PlanetCameraMovement::dragUpdate()
@@ -136,5 +136,32 @@ vec2 PlanetCameraMovement::dragVelocity() const
 void PlanetCameraMovement::updateHorizonDistance()
 {
     horizonDistance = sqrt(pow(length(cam->position), 2) - pow(plt->sphere.radius, 2));
+}
+
+void PlanetCameraMovement::islandFrustumCulling()
+{
+    updateHorizonDistance();
+    int nrInView = 0;
+    for (Island *isl : plt->islands)
+    {
+        isl->isInView = false;
+        for (int x = 0; x < isl->width; x += 10)
+        {
+            for (int y = 0; y < isl->height && !isl->isInView; y += 10)
+            {
+                if (isl->tileAtSeaFloor(x, y)) continue;
+
+                vec3 p = isl->vertexPositionsPlanet[isl->xyToVertI(x, y)];
+
+                if (length(p - cam->position) > horizonDistance + 15) continue;
+
+                bool inView = false;
+                cam->project(p, inView);
+                if (inView) isl->isInView = true;
+            }
+        }
+        if (isl->isInView) nrInView++;
+    }
+    std::cout << nrInView << '\n';
 }
 

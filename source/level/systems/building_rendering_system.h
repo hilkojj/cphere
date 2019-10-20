@@ -8,6 +8,16 @@
 #include "../buildings/building.h"
 #include "buildings_system.h"
 
+struct VariantInstances
+{
+    int vertDataId = -1;
+    VertData transforms = VertData(BUILDING_TRANSFORM_VERT_ATTRS, std::vector<float>());
+    std::vector<Building>
+            buildings,
+            toAdd,
+            toRemove;
+};
+
 class BuildingRenderingSystem : public LevelSystem
 {
   public:
@@ -15,6 +25,7 @@ class BuildingRenderingSystem : public LevelSystem
 
     ShaderProgram defaultShader;
     std::map<Island*, std::vector<BuildingMesh*>> buildingMeshes;
+    std::map<Island*, std::map<BuildingMeshVariant*, VariantInstances>> variantInstances;
 
     BuildingRenderingSystem(Level *lvl)
         : defaultShader(
@@ -35,7 +46,8 @@ class BuildingRenderingSystem : public LevelSystem
             if (std::find(islMeshes.begin(), islMeshes.end(), rb.buildingMesh) == islMeshes.end())
                 islMeshes.push_back(rb.buildingMesh);
 
-            rb.buildingMesh->variants[rb.variant].instancesToAdd.push_back(b);
+            auto &var = rb.buildingMesh->variants[rb.variant];
+            variantInstances[b->isl][&var].toAdd.push_back(b);
         });
 
 
@@ -47,7 +59,7 @@ class BuildingRenderingSystem : public LevelSystem
             if (rb.instanceIndex == -1) return;
 
             auto &var = rb.buildingMesh->variants[rb.variant];
-            var.instancesToRemove.push_back(b);
+            variantInstances[b->isl][&var].toRemove.push_back(b);
         });
     }
 
@@ -62,48 +74,45 @@ class BuildingRenderingSystem : public LevelSystem
 
         for (Island *isl : lvl->earth.islands)
         {
-            if (!isl->isInView || !buildingMeshes.count(isl)) continue;
+            if (!isl->isInView) continue;
 
-            for (auto &buildingMesh : buildingMeshes[isl])
+            for (auto &[var, instances] : variantInstances[isl])
             {
-                auto vertBuffer = buildingMesh->variants[0].lodMeshes[0]->vertBuffer;
-                for (auto &var : buildingMesh->variants)
+                auto vertBuffer = var->lodMeshes[0]->vertBuffer;
+                auto nrToAdd = instances.toAdd.size(), nrToRemove = instances.toRemove.size();
+                if (nrToAdd || nrToRemove)
                 {
-                    auto nrToAdd = var.instancesToAdd.size(), nrToRemove = var.instancesToRemove.size();
-                    if (nrToAdd || nrToRemove)
+                    if (instances.vertDataId != -1)
+                        vertBuffer->deletePerInstanceData(instances.vertDataId);
+
+                    for (auto &b : instances.toRemove)
                     {
-                        if (var.instancedVertDataId != -1)
-                            vertBuffer->deletePerInstanceData(var.instancedVertDataId);
+                        instances.transforms.setMat<mat4>(
+                                instances.transforms.getMat<mat4>(instances.buildings.size() - 1, 0),
+                                b->renderBuilding->instanceIndex, 0
+                        );
+                        instances.transforms.removeVertices(1);
 
-                        for (auto &b : var.instancesToRemove)
-                        {
-                            var.instanceTransforms.setMat<mat4>(
-                                    var.instanceTransforms.getMat<mat4>(var.instances.size() - 1, 0),
-                                    b->renderBuilding->instanceIndex, 0
-                            );
-                            var.instanceTransforms.removeVertices(1);
-
-                            // remove instance from list:
-                            var.instances.erase(std::remove(var.instances.begin(), var.instances.end(), b), var.instances.end());
-                        }
-
-                        for (auto &b : var.instancesToAdd)
-                        {
-                            b->renderBuilding->instanceIndex = var.instances.size();
-                            var.instanceTransforms.addVertices(1);
-                            var.instanceTransforms.setMat<mat4>(b->transform, var.instances.size(), 0);
-                            var.instances.push_back(b);
-                        }
-
-                        var.instancedVertDataId = vertBuffer->uploadPerInstanceData(var.instanceTransforms);
-                        var.instancesToAdd.clear();
-                        var.instancesToRemove.clear();
-                        std::cout << var.instances.size() << "\n";
+                        // remove instance from list:
+                        instances.buildings.erase(std::remove(instances.buildings.begin(), instances.buildings.end(), b), instances.buildings.end());
                     }
-                    vertBuffer->usePerInstanceData(var.instancedVertDataId);
-                    var.texture->bind(0, defaultShader, "buildingTexture");
-                    var.lodMeshes[0]->renderInstances(var.instances.size());
+
+                    for (auto &b : instances.toAdd)
+                    {
+                        b->renderBuilding->instanceIndex = instances.buildings.size();
+                        instances.transforms.addVertices(1);
+                        instances.transforms.setMat<mat4>(b->transform, instances.buildings.size(), 0);
+                        instances.buildings.push_back(b);
+                    }
+
+                    instances.vertDataId = vertBuffer->uploadPerInstanceData(instances.transforms);
+                    instances.toAdd.clear();
+                    instances.toRemove.clear();
+                    std::cout << instances.buildings.size() << "\n";
                 }
+                vertBuffer->usePerInstanceData(instances.vertDataId);
+                var->texture->bind(0, defaultShader, "buildingTexture");
+                var->lodMeshes[0]->renderInstances(instances.buildings.size());
             }
         }
     }

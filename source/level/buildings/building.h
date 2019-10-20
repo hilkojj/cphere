@@ -33,16 +33,6 @@ struct BuildingMeshVariant
 //    std::vector<SharedMesh> lodShadowMeshes; // must be uploaded to same VertBuffer as above.
 
     SharedTexture texture;
-
-private:
-    friend BuildingRenderingSystem;
-
-    int instancedVertDataId = -1;
-    VertData instanceTransforms = VertData(BUILDING_TRANSFORM_VERT_ATTRS, std::vector<float>());
-    std::vector<Building>
-        instances,
-        instancesToAdd,
-        instancesToRemove;
 };
 
 struct BuildingMesh

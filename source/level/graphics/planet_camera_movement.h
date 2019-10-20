@@ -22,6 +22,8 @@ class PlanetCameraMovement
     void dragUpdate();
     vec2 dragVelocity() const;
 
+    void islandFrustumCulling();
+
     void updateHorizonDistance();
 
     PerspectiveCamera *cam;

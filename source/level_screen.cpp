@@ -230,10 +230,11 @@ class LevelScreen : public Screen
 
         glUniform1f(causticsShader.location("time"), time);
         glUniform3f(causticsShader.location("sunDir"), sunDir.x, sunDir.y, sunDir.z);
+        glUniformMatrix4fv(glGetUniformLocation(causticsShader.id(), "viewTrans"), 1, GL_FALSE, &cam.combined[0][0]);
 
         for (auto isl : earth.islands)
         {
-            glUniformMatrix4fv(glGetUniformLocation(causticsShader.id(), "viewTrans"), 1, GL_FALSE, &cam.combined[0][0]);
+            if (!isl->isInView) continue;
             isl->terrainMesh->render();
         }
         //         shipShader.use();
@@ -274,6 +275,7 @@ class LevelScreen : public Screen
         glUniformMatrix4fv(terrainShader.location("viewTrans"), 1, GL_FALSE, &(cam.combined[0][0]));
         for (auto isl : earth.islands)
         {
+            if (!isl->isInView) continue;
             isl->terrainMesh->mode = isl == hoveredIsland ? GL_LINES : GL_TRIANGLES;
             isl->terrainMesh->render();
             isl->terrainMesh->mode = GL_TRIANGLES;
