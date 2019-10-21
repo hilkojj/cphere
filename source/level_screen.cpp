@@ -21,11 +21,13 @@
 #include "glm/gtx/rotate_vector.hpp"
 #include "utils/json_model_loader.h"
 #include "level/graphics/ship_wake.h"
-#include "level/systems/building_rendering_system.h"
+#include "level/graphics/shadow_renderer.h"
 
+#include "level/systems/building_rendering_system.h"
 #include "level/level.h"
 
 #include <fstream>
+#include <graphics/3d/perspective_camera.h>
 
 class LevelScreen : public Screen
 {
@@ -51,12 +53,14 @@ class LevelScreen : public Screen
     WaveRenderer *waveRenderer;
     SpaceRenderer spaceRenderer;
     CloudRenderer cloudRenderer;
+    ShadowRenderer shadowRenderer;
 
     LevelScreen(const char *loadFilePath)
         :
           lvl(new Level(loadFilePath)),
 
-          cam(PerspectiveCamera(.1, 1000, 1, 1, 55)), camController(&cam), planetCamMovement(&cam, &lvl->earth),
+          cam(.1, 1000, 1, 1, 55),
+          camController(&cam), planetCamMovement(&cam, &lvl->earth),
           
           caustics(Texture::fromDDSFile("assets/textures/tc_caustics.dds")),
           sand(Texture::fromDDSFile("assets/textures/tc_sand.dds")),
@@ -91,8 +95,8 @@ class LevelScreen : public Screen
           atmosphereMesh(SphereMeshGenerator::generate("earth_atmosphere", ATMOSPHERE_RADIUS, 50, 130, VertAttributes().add_(VertAttributes::POSITION).add_(VertAttributes::NORMAL))),
           cloudRenderer(&lvl->earth),
 
-          underwaterBuffer(FrameBuffer(1024, 1024)),
-          reflectionBuffer(FrameBuffer(512, 512))
+          underwaterBuffer(1024, 1024),
+          reflectionBuffer(512, 512)
     {
         underwaterBuffer.addColorTexture(GL_RGBA, GL_LINEAR, GL_LINEAR);
         underwaterBuffer.addDepthTexture(GL_LINEAR, GL_LINEAR);
@@ -185,6 +189,14 @@ class LevelScreen : public Screen
         earth.cursorToLonLat(&cam, ll);
         vec3 shipPos;// earth.lonLatTo3d(ll.x, ll.y, 0);
 
+
+        shadowRenderer.begin(cam, -sunDir);
+
+
+
+        shadowRenderer.end();
+
+
         // RENDER WATER REFLECTIONS
         reflectionBuffer.bind();
         glClearColor(.12, .15, .29, 1);
@@ -247,9 +259,9 @@ class LevelScreen : public Screen
         cam.update();
         waveRenderer->render(newDeltaTime, cam.combined);
 
-//        shipWakeShader.use();
-//        glUniformMatrix4fv(shipWakeShader.location("viewTrans"), 1, GL_FALSE, &(cam.combined[0][0]));
-//        shipWake.render(lineRenderer, shipPos, newDeltaTime);
+        shipWakeShader.use();
+        glUniformMatrix4fv(shipWakeShader.location("viewTrans"), 1, GL_FALSE, &(cam.combined[0][0]));
+        shipWake.render(lineRenderer, shipPos, newDeltaTime);
         cam.far_ = prevCamFar;
         cam.update();
 
@@ -272,7 +284,19 @@ class LevelScreen : public Screen
         glUniform4f(terrainShader.location("specularity"), .4, 0, 0, .6);
         glUniform4f(terrainShader.location("textureScale"), 2.2, 1., 1., 1.5);
 
-        glUniformMatrix4fv(terrainShader.location("viewTrans"), 1, GL_FALSE, &(cam.combined[0][0]));
+        static bool b = false;
+        if (KeyInput::justPressed(GLFW_KEY_Y)) b = !b;
+
+        if (b)
+            glUniformMatrix4fv(terrainShader.location("viewTrans"), 1, GL_FALSE, &(shadowRenderer.sunCam.combined[0][0]));
+        else
+            glUniformMatrix4fv(terrainShader.location("viewTrans"), 1, GL_FALSE, &(cam.combined[0][0]));
+
+
+        if (b)
+            lvl->cam = &shadowRenderer.sunCam;
+        else
+            lvl->cam = &cam;
         for (auto isl : earth.islands)
         {
             if (!isl->isInView) continue;

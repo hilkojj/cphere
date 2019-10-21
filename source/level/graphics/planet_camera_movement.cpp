@@ -2,7 +2,7 @@
 #include "input/mouse_input.h"
 #include "gu/game_utils.h"
 
-PlanetCameraMovement::PlanetCameraMovement(PerspectiveCamera *cam, Planet *plt)
+PlanetCameraMovement::PlanetCameraMovement(Camera *cam, Planet *plt)
     : cam(cam), plt(plt), slightlySmallerPlt("PltCamMovementPlt", Sphere(plt->sphere.radius - 10.))
 {
 }
@@ -12,6 +12,7 @@ const int DRAG_BUTTON = GLFW_MOUSE_BUTTON_LEFT;
 
 void PlanetCameraMovement::update(double deltaTime, Planet *plttt)
 {
+    auto prevPos = cam->position;
     plt = plttt;
     bool startDrag = MouseInput::justPressed(DRAG_BUTTON),
          dragging = MouseInput::pressed(DRAG_BUTTON),
@@ -63,7 +64,7 @@ void PlanetCameraMovement::update(double deltaTime, Planet *plttt)
     zoomVelocity = abs(prevActualZoom - actualZoom) / deltaTime;
 
     cam->position = mu::Y * vec3(5. + 235 * (1. - actualZoom));
-    cam->position.z += actualZoom * 23.5;
+    cam->position.z += actualZoom * 24.5;
 
     cam->lookAt(mu::ZERO_3, -mu::Z);
 
@@ -80,7 +81,7 @@ void PlanetCameraMovement::update(double deltaTime, Planet *plttt)
     cam->up = transform * vec4(cam->up, 0);
 
     cam->update();
-    if (dragging || zoomVelocity > 0.) islandFrustumCulling();
+    if (prevPos != cam->position) islandFrustumCulling();
 }
 
 void PlanetCameraMovement::dragUpdate()

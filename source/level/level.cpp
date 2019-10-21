@@ -31,7 +31,7 @@ Level::Level(const char *loadFilePath)
 
     for (Island *isl : earth.islands)
     {
-        for (int i = 0; i < isl->width * isl->height; i++)
+        for (int i = 0; i < isl->width * isl->height * .8; i++)
         {
             int x = mu::randomInt(isl->width - 10), y = mu::randomInt(isl->height - 10);
 
