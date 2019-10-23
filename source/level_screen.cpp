@@ -180,19 +180,20 @@ class LevelScreen : public Screen
 
         glm::vec3 sunDirZoomedOut = glm::vec3(glm::sin(time * .008), 0, glm::cos(time * .008));
         glm::vec3 sunDirZoomedIn = rotate(mu::Z, (planetCamMovement.lat - float(90.)) * mu::DEGREES_TO_RAD, mu::X);
-        sunDirZoomedIn = rotate(sunDirZoomedIn, (planetCamMovement.lon + float(6.)) * mu::DEGREES_TO_RAD, mu::Y);
+        sunDirZoomedIn = rotate(sunDirZoomedIn, (planetCamMovement.lon + float(20.)) * mu::DEGREES_TO_RAD, mu::Y);
         float closeSunDir = clamp((planetCamMovement.actualZoom - .35) * 3., 0., .7);
         glm::vec3 sunDir = sunDirZoomedOut * (1 - closeSunDir) + sunDirZoomedIn * closeSunDir;
         sunDir = normalize(sunDir);
 
         vec2 ll;
         earth.cursorToLonLat(&cam, ll);
-        vec3 shipPos;// earth.lonLatTo3d(ll.x, ll.y, 0);
-
 
         shadowRenderer.begin(cam, -sunDir);
 
-
+        BuildingRenderingSystem::active->renderShadows(lvl, &shadowRenderer.sunCam);
+        glDisable(GL_BLEND);
+        renderShips(sunDir, shadowRenderer.sunCam.combined);
+        glEnable(GL_BLEND);
 
         shadowRenderer.end();
 
@@ -205,23 +206,7 @@ class LevelScreen : public Screen
         cam.far_ = planetCamMovement.horizonDistance - 10.;
         cam.update();
 
-        {
-            shipShader.use();
-            glUniform1i(shipShader.location("reflection"), 1);
-            shipTexture->bind(0, shipShader, "shipTexture");
-            glCullFace(GL_FRONT);
-
-            for (auto &ship : lvl->ships) {
-                auto worldTrans = ship.transform;
-                vec3 localSunDir = vec4(sunDir, 1) * worldTrans;
-                glUniform3f(shipShader.location("sunDir"), localSunDir.x, localSunDir.y, localSunDir.z);
-                glUniformMatrix4fv(shipShader.location("mvp"), 1, GL_FALSE, &(cam.combined * worldTrans)[0][0]);
-                shipMesh->render();
-
-                shipPos = earth.lonLatTo3d(ship.lonLat.x, ship.lonLat.y, 0);
-            };
-            glCullFace(GL_BACK);
-        }
+        renderShips(sunDir, cam.combined, true);
 
         reflectionBuffer.unbind();
         cam.far_ = prevCamFar;
@@ -249,11 +234,6 @@ class LevelScreen : public Screen
             if (!isl->isInView) continue;
             isl->terrainMesh->render();
         }
-        //         shipShader.use();
-        // glUniformMatrix4fv(shipShader.location("mvp"), 1, GL_FALSE, &(rotate(rotate(translate(cam.combined, vec3(0, 0, EARTH_RADIUS - sin(time) * 3. - 1.5)), 90 * mu::DEGREES_TO_RAD, mu::X), 130 * mu::DEGREES_TO_RAD, mu::Y)[0][0]));
-        // shipTexture->bind(0, shipShader, "shipTexture");
-        // ship->render();
-
         // render waves to alpha channel of underwaterBuffer
         cam.far_ = planetCamMovement.horizonDistance;
         cam.update();
@@ -261,7 +241,7 @@ class LevelScreen : public Screen
 
         shipWakeShader.use();
         glUniformMatrix4fv(shipWakeShader.location("viewTrans"), 1, GL_FALSE, &(cam.combined[0][0]));
-        shipWake.render(lineRenderer, shipPos, newDeltaTime);
+        shipWake.render(lineRenderer, lvl->ships[0].pos, newDeltaTime);
         cam.far_ = prevCamFar;
         cam.update();
 
@@ -280,9 +260,13 @@ class LevelScreen : public Screen
         glUniform1i(terrainShader.location("backgroundTerrainLayer"), 0);
         glUniform4f(terrainShader.location("terrainLayers"), 2, 4, 5, 6);
         glUniform4i(terrainShader.location("hasNormal"), 1, 0, 0, 1); // (background must have normal)
-        glUniform4i(terrainShader.location("fadeBlend"), 1, 0, 0, 1);
+        glUniform4i(terrainShader.location("fadeBlend"), 0, 0, 0, 1);
         glUniform4f(terrainShader.location("specularity"), .4, 0, 0, .6);
         glUniform4f(terrainShader.location("textureScale"), 2.2, 1., 1., 1.5);
+
+        shadowRenderer.sunDepthTexture->bind(1, terrainShader, "shadowBuffer");
+        mat4 shadowMatrix = ShadowRenderer::BIAS_MATRIX * shadowRenderer.sunCam.combined;
+        glUniformMatrix4fv(terrainShader.location("shadowMatrix"), 1, GL_FALSE, &((shadowMatrix)[0][0]));
 
         static bool b = false;
         if (KeyInput::justPressed(GLFW_KEY_Y)) b = !b;
@@ -307,17 +291,7 @@ class LevelScreen : public Screen
         // DONE RENDERING ISLANDS
 
 
-        shipShader.use();
-        glUniform1i(shipShader.location("reflection"), 0);
-        shipTexture->bind(0, shipShader, "shipTexture");
-
-        for (auto &ship : lvl->ships) {
-            auto &worldTrans = ship.transform;
-            vec3 localSunDir = vec4(sunDir, 1) * worldTrans;
-            glUniform3f(shipShader.location("sunDir"), localSunDir.x, localSunDir.y, localSunDir.z);
-            glUniformMatrix4fv(shipShader.location("mvp"), 1, GL_FALSE, &(cam.combined * worldTrans)[0][0]);
-            shipMesh->render();
-        };
+        renderShips(sunDir, cam.combined);
 
         glEnable(GL_BLEND);
 
@@ -337,6 +311,10 @@ class LevelScreen : public Screen
         glUniform2f(earthShader.location("scrSize"), gu::widthPixels, gu::heightPixels);
         glUniform3f(earthShader.location("camPos"), cam.position.x, cam.position.y, cam.position.z);
         glUniform3f(earthShader.location("sunDir"), sunDir.x, sunDir.y, sunDir.z);
+
+        shadowRenderer.sunDepthTexture->bind(5, earthShader, "shadowBuffer");
+        glUniformMatrix4fv(earthShader.location("shadowMatrix"), 1, GL_FALSE, &((ShadowRenderer::BIAS_MATRIX * shadowRenderer.sunCam.combined)[0][0]));
+
         earth.mesh->render();
         // DONE RENDERING WATER
 
@@ -471,6 +449,23 @@ class LevelScreen : public Screen
         Mesh::getQuad()->render();
         spaceRenderer.renderSun(sunDir, cam, sceneBuffer->depthTexture, time, earth);
         glEnable(GL_DEPTH_TEST);
+    }
+
+    void renderShips(vec3 &sunDir, mat4 &view, bool reflection=false)
+    {
+        shipShader.use();
+        glUniform1i(shipShader.location("reflection"), reflection);
+        shipTexture->bind(0, shipShader, "shipTexture");
+        if (reflection) glCullFace(GL_FRONT);
+
+        for (auto &ship : lvl->ships) {
+            auto &worldTrans = ship.transform;
+            vec3 localSunDir = vec4(sunDir, 1) * worldTrans;
+            glUniform3f(shipShader.location("sunDir"), localSunDir.x, localSunDir.y, localSunDir.z);
+            glUniformMatrix4fv(shipShader.location("mvp"), 1, GL_FALSE, &(view * worldTrans)[0][0]);
+            shipMesh->render();
+        };
+        glCullFace(GL_BACK);
     }
 
     void onResize()

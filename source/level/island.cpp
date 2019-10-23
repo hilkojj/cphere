@@ -268,7 +268,8 @@ void Island::createMesh()
         norOffset = attrs.add(VertAttributes::NORMAL),
         uvOffset = attrs.add(VertAttributes::TEX_COORDS),
         tanOffset = attrs.add(VertAttributes::TANGENT),
-        texOffset = attrs.add({"TEX_BLEND", 4, GL_FALSE});
+        texOffset = attrs.add({"TEX_BLEND", 4, GL_FALSE}),
+        yLevelOffset = attrs.add({"Y_LEVEL", 1, GL_FALSE});
 
     SharedMesh mesh = SharedMesh(new Mesh(name + "_mesh", nrOfVerts, width * height * 6, attrs));
 
@@ -282,6 +283,7 @@ void Island::createMesh()
         );
 
         mesh->set(textureMap[i], i, texOffset);    // texture blending
+        mesh->setFloat(vertexPositionsOriginal[i].y, i, yLevelOffset); // y level
     }
 
     int i = 0;

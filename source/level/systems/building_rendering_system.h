@@ -2,6 +2,7 @@
 #define GAME_BUILDING_RENDERING_H
 
 #include <optional>
+#include <graphics/orthographic_camera.h>
 
 #include "../level.h"
 #include "graphics/texture.h"
@@ -110,6 +111,28 @@ class BuildingRenderingSystem : public LevelSystem
                     instances.toRemove.clear();
                     std::cout << instances.buildings.size() << "\n";
                 }
+                vertBuffer->usePerInstanceData(instances.vertDataId);
+                var->texture->bind(0, defaultShader, "buildingTexture");
+                var->lodMeshes[0]->renderInstances(instances.buildings.size());
+            }
+        }
+    }
+
+    void renderShadows(Level *lvl, OrthographicCamera *sunCam)
+    {
+        defaultShader.use();
+        glUniformMatrix4fv(defaultShader.location("view"), 1, GL_FALSE, &sunCam->combined[0][0]);
+
+        for (Island *isl : lvl->earth.islands)
+        {
+            if (!isl->isInView) continue;
+
+            for (auto &[var, instances] : variantInstances[isl])
+            {
+                if (instances.vertDataId == -1) continue;
+
+                auto vertBuffer = var->lodMeshes[0]->vertBuffer;
+
                 vertBuffer->usePerInstanceData(instances.vertDataId);
                 var->texture->bind(0, defaultShader, "buildingTexture");
                 var->lodMeshes[0]->renderInstances(instances.buildings.size());

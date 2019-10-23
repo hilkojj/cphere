@@ -83,7 +83,12 @@ class ShipsSystem : public LevelSystem
                 deltaTime * 2.
             );
 
-            mat4 t = inverse(lookAt(ship.pos, ship.pos + ship.dir, ship.up));
+            // todo: create better ship bobbing
+            vec3 p = ship.pos;
+            vec3 wave = ship.up * float(sin(lvl->time) * .08);
+            p += wave - ship.up * float(.1);
+
+            mat4 t = inverse(lookAt(p, p + ship.dir, ship.up));
             ship.transform = t;
 
             ship.lonLat = vec2(lvl->earth.longitude(ship.pos.x, ship.pos.z), lvl->earth.latitude(ship.pos.y));

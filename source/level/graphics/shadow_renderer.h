@@ -10,8 +10,14 @@ class ShadowRenderer
 {
   public:
 
+    inline static const mat4 BIAS_MATRIX = mat4(
+        0.5, 0.0, 0.0, 0.0,
+        0.0, 0.5, 0.0, 0.0,
+        0.0, 0.0, 0.5, 0.0,
+        0.5, 0.5, 0.5, 1.0
+    );
+
     SharedTexture sunDepthTexture;
-    mat4 shadowMatrix;
     OrthographicCamera sunCam;
 
     ShadowRenderer();
