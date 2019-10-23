@@ -303,7 +303,7 @@ void main()
     {
         shadow = texture(shadowBuffer, shadowMapCoords.xyz);
 
-        float shadowOpacity = v_shadowOpacity * .4;
+        float shadowOpacity = v_shadowOpacity * .3;
 
         color.rgb *= shadow * shadowOpacity + (1. - shadowOpacity);
     }

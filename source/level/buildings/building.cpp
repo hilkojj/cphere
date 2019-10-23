@@ -39,5 +39,6 @@ void Building_::move(int x, int y, int rotation, Island *isl)
         transform = rotate(transform, (-longitude - float(90)) * mu::DEGREES_TO_RAD, mu::Y);
         transform = rotate(transform, latitude * mu::DEGREES_TO_RAD, mu::X);
         transform = translate(transform, vec3(0, length(center), 0));
+        transform = transform * localTransform;
     }
 }

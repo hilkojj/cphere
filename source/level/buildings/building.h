@@ -21,11 +21,19 @@ static const VertAttributes
         .add_(VertAttributes::TRANSFORM_COL_A)
         .add_(VertAttributes::TRANSFORM_COL_B)
         .add_(VertAttributes::TRANSFORM_COL_C)
-        .add_(VertAttributes::TRANSFORM_COL_D);
+        .add_(VertAttributes::TRANSFORM_COL_D)
+        .add_({"RANDOM", 1});
 
+enum BuildingShader
+{
+    DEFAULT,
+    TREE
+};
 
 class BuildingRenderingSystem;
 class BuildingsSystem;
+
+struct BuildingMesh;
 
 struct BuildingMeshVariant
 {
@@ -33,12 +41,14 @@ struct BuildingMeshVariant
 //    std::vector<SharedMesh> lodShadowMeshes; // must be uploaded to same VertBuffer as above.
 
     SharedTexture texture;
+
+    BuildingMesh *buildingMesh = NULL;
 };
 
 struct BuildingMesh
 {
+    BuildingShader shader = DEFAULT;
     std::vector<BuildingMeshVariant> variants;
-    std::optional<ShaderProgram> customShaderProgram;
 };
 
 struct RenderBuilding
@@ -59,7 +69,7 @@ struct Building_
     Island *isl;
     int rotation; // how many times the building is rotated (90 degrees)
     std::vector<ivec2> tiles; // the tiles occupied by the building
-    mat4 transform;
+    mat4 transform, localTransform = mat4(1);
 
     std::optional<RenderBuilding> renderBuilding;
 

@@ -70,7 +70,7 @@ void main() {
     layer(1, normal, color, remainingA, specularA);
     layer(0, normal, color, remainingA, specularA);
     layer(-1, normal, color, remainingA, specularA);
-        
+
     normal *= 2.;
     normal -= 1.;
 
@@ -91,7 +91,7 @@ void main() {
     {
         float shadow = texture(shadowBuffer, shadowMapCoords.xyz);
 
-        float shadowOpacity = v_shadowOpacity * .4;
+        float shadowOpacity = v_shadowOpacity * .3;
 
         color.rgb *= shadow * shadowOpacity + (1. - shadowOpacity);
 

@@ -24,13 +24,16 @@ class BuildingRenderingSystem : public LevelSystem
   public:
     inline static BuildingRenderingSystem *active = NULL;
 
-    ShaderProgram defaultShader;
+    ShaderProgram defaultShader, treeShader;
     std::map<Island*, std::vector<BuildingMesh*>> buildingMeshes;
     std::map<Island*, std::map<BuildingMeshVariant*, VariantInstances>> variantInstances;
 
     BuildingRenderingSystem(Level *lvl)
         : defaultShader(
                 ShaderProgram::fromFiles("DefaultBuildingShader", "assets/shaders/building.vert", "assets/shaders/building.frag")
+          ),
+          treeShader(
+                ShaderProgram::fromFiles("TreeShader", "assets/shaders/building.vert", "assets/shaders/tree.frag")
           )
     {
         active = this;
@@ -69,16 +72,24 @@ class BuildingRenderingSystem : public LevelSystem
 
     void render(double deltaTime, Level *lvl, vec3 &sunDir)
     {
-        defaultShader.use();
-        glUniformMatrix4fv(defaultShader.location("view"), 1, GL_FALSE, &lvl->cam->combined[0][0]);
-        glUniform3f(defaultShader.location("sunDir"), sunDir.x, sunDir.y, sunDir.z);
-
         for (Island *isl : lvl->earth.islands)
         {
             if (!isl->isInView) continue;
 
             for (auto &[var, instances] : variantInstances[isl])
             {
+                ShaderProgram *shader = &defaultShader;
+                switch (var->buildingMesh->shader)
+                {
+                    case TREE:
+                        shader = &treeShader;
+                        break;
+                }
+                shader->use();
+
+                glUniformMatrix4fv(shader->location("view"), 1, GL_FALSE, &lvl->cam->combined[0][0]);
+                glUniform3f(shader->location("sunDir"), sunDir.x, sunDir.y, sunDir.z);
+
                 auto vertBuffer = var->lodMeshes[0]->vertBuffer;
                 auto nrToAdd = instances.toAdd.size(), nrToRemove = instances.toRemove.size();
                 if (nrToAdd || nrToRemove)
@@ -92,6 +103,10 @@ class BuildingRenderingSystem : public LevelSystem
                                 instances.transforms.getMat<mat4>(instances.buildings.size() - 1, 0),
                                 b->renderBuilding->instanceIndex, 0
                         );
+                        instances.transforms.setFloat(
+                                instances.transforms.getFloat(instances.buildings.size() - 1, 16),
+                                b->renderBuilding->instanceIndex, 16
+                        );
                         instances.transforms.removeVertices(1);
 
                         // remove instance from list:
@@ -103,6 +118,7 @@ class BuildingRenderingSystem : public LevelSystem
                         b->renderBuilding->instanceIndex = instances.buildings.size();
                         instances.transforms.addVertices(1);
                         instances.transforms.setMat<mat4>(b->transform, instances.buildings.size(), 0);
+                        instances.transforms.setFloat(mu::random(), instances.buildings.size(), 16);
                         instances.buildings.push_back(b);
                     }
 
@@ -112,7 +128,8 @@ class BuildingRenderingSystem : public LevelSystem
                     std::cout << instances.buildings.size() << "\n";
                 }
                 vertBuffer->usePerInstanceData(instances.vertDataId);
-                var->texture->bind(0, defaultShader, "buildingTexture");
+                var->texture->bind(0);
+                glUniform1i(shader->location("buildingTexture"), 0);
                 var->lodMeshes[0]->renderInstances(instances.buildings.size());
             }
         }
