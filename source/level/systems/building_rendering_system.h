@@ -26,13 +26,16 @@ class BuildingRenderingSystem : public LevelSystem
   public:
     inline static BuildingRenderingSystem *active = NULL;
 
-    ShaderProgram defaultShader, treeShader;
+    ShaderProgram defaultShader, ghostShader, treeShader;
     std::map<Island*, std::vector<BuildingMesh*>> buildingMeshes;
     std::map<Island*, std::map<BuildingMeshVariant*, VariantInstances>> variantInstances;
 
     BuildingRenderingSystem(Level *lvl)
         : defaultShader(
                 ShaderProgram::fromFiles("DefaultBuildingShader", "assets/shaders/building.vert", "assets/shaders/building.frag")
+          ),
+          ghostShader(
+                  ShaderProgram::fromFiles("BuildingGhostShader", "assets/shaders/building_ghost.vert", "assets/shaders/building_ghost.frag")
           ),
           treeShader(
                 ShaderProgram::fromFiles("TreeShader", "assets/shaders/tree.vert", "assets/shaders/tree.frag")
@@ -175,6 +178,26 @@ class BuildingRenderingSystem : public LevelSystem
                 var->lodMeshes[0]->renderInstances(instances.buildings.size());
             }
         }
+    }
+
+    void renderGhost(Level *lvl, const Building &ghostBuilding, const vec3 &sunDir, const bool &blocked)
+    {
+        if (!ghostBuilding->renderBuilding || !ghostBuilding->isl) return;
+
+        ghostShader.use();
+        mat4 mvp = lvl->cam->combined * ghostBuilding->transform;
+
+        vec3 newSunDir = vec4(sunDir, 0) * ghostBuilding->transform;
+
+        glUniform3f(ghostShader.location("sunDir"), newSunDir.x, newSunDir.y, newSunDir.z);
+        glUniformMatrix4fv(ghostShader.location("view"), 1, GL_FALSE, &mvp[0][0]);
+        glUniform1f(ghostShader.location("time"), lvl->time);
+        glUniform1i(ghostShader.location("blocked"), blocked);
+
+        auto &var = ghostBuilding->renderBuilding->buildingMesh->variants[ghostBuilding->renderBuilding->variant];
+
+        var.texture->bind(0, ghostShader, "buildingTexture");
+        var.lodMeshes[0]->render();
     }
 
 };

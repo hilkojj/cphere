@@ -297,6 +297,11 @@ class LevelScreen : public Screen
 
         BuildingRenderingSystem::active->render(newDeltaTime, lvl, sunDir);
 
+        if (BuildingsSystem::active->currentlyPlacing)
+        {
+            BuildingRenderingSystem::active->renderGhost(lvl, BuildingsSystem::active->currentlyPlacing, sunDir, BuildingsSystem::active->placingBlocked);
+        }
+
         // RENDER WATER:
         earthShader.use();
         foamTexture->bind(0, earthShader, "foamTexture");

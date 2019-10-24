@@ -24,6 +24,8 @@ class BuildingsSystem : public LevelSystem
 
     Building currentlyPlacing;
 
+    bool placingBlocked = false;
+
     BuildingsSystem(Level *lvl) : lvl(lvl)
     {
         active = this;
@@ -60,7 +62,7 @@ class BuildingsSystem : public LevelSystem
 
         if (currentlyPlacing)
         {
-            bool blocked = true;
+            placingBlocked = true;
             auto *isl = lvl->earth.islUnderCursor(lvl->cam);
             if (isl)
             {
@@ -73,12 +75,12 @@ class BuildingsSystem : public LevelSystem
                             currentlyPlacing->rotation + (MouseInput::justPressed(GLFW_MOUSE_BUTTON_MIDDLE) ? 1 : 0),
                             isl
                     );
-                    blocked = !canPlace(currentlyPlacing);
+                    placingBlocked = !canPlace(currentlyPlacing);
                 }
             }
             if (MouseInput::justPressed(GLFW_MOUSE_BUTTON_LEFT))
             {
-                if (blocked)
+                if (placingBlocked)
                     std::cout << "BUILDING BLOCKED!" << "\n";
                 else {
                     place(currentlyPlacing);

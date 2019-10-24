@@ -41,7 +41,7 @@ void main()
 
     float r = v_random * v_random * v_random;
 
-    vec3 c = v_random > .5 ? vec3(1., 1.5, 1.4) : vec3(10., 1., 1.4);
+    vec3 c = v_random > .5 ? vec3(.8, 1.5, 1.4) : vec3(15., 1., 1.4);
 
     color.rgb *= c * r + vec3(1. - r);
 
