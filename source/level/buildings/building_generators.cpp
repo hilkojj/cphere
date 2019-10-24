@@ -45,6 +45,32 @@ namespace BLUEPRINTS
         );
     }
 
+    void create_HOUSE(Building &b)
+    {
+        static BuildingMesh *buildingMesh = NULL;
+
+        std::cout << "create House\n";
+
+        if (!buildingMesh)
+        {
+            buildingMesh = new BuildingMesh{ DEFAULT };
+            auto &variant = buildingMesh->variants.emplace_back();
+            {
+                SharedModel model = JsonModelLoader::fromUbjsonFile("assets/models/house.ubj", &DEFAULT_BUILDING_VERT_ATTRS)[0];
+                auto &pineMesh = model->parts[0].mesh;
+                VertBuffer::uploadSingleMesh(pineMesh);
+                variant.lodMeshes.push_back(pineMesh);
+                variant.texture = Texture::fromDDSFile("assets/textures/house.dds");
+                variant.buildingMesh = buildingMesh;
+            }
+        }
+        RenderBuilding rb;
+        rb.buildingMesh = buildingMesh;
+        rb.variant = mu::randomInt(buildingMesh->variants.size() - 1);
+        b->renderBuilding = rb;
+    }
+
+
     void create_OAK_TREE(Building &b)
     {
         std::cout << "create Oak Tree\n";

@@ -83,13 +83,7 @@ class BuildingRenderingSystem : public LevelSystem
 
             for (auto &[var, instances] : variantInstances[isl])
             {
-                ShaderProgram *shader = &defaultShader;
-                switch (var->buildingMesh->shader)
-                {
-                    case TREE:
-                        shader = &treeShader;
-                        break;
-                }
+                ShaderProgram *shader = shaderForVariant(var);
                 shader->use();
 
                 auto vertBuffer = var->lodMeshes[0]->vertBuffer;
@@ -146,6 +140,18 @@ class BuildingRenderingSystem : public LevelSystem
         }
     }
 
+    ShaderProgram *shaderForVariant(const BuildingMeshVariant *var)
+    {
+        auto shader = &defaultShader;
+        switch (var->buildingMesh->shader)
+        {
+            case TREE:
+                shader = &treeShader;
+                break;
+        }
+        return shader;
+    }
+
     void setJustPlacedUniforms(ShaderProgram *shader, VariantInstances &instances, Level *lvl)
     {
         glUniform1i(shader->location("justPlacedId"), instances.justPlacedId);
@@ -159,9 +165,6 @@ class BuildingRenderingSystem : public LevelSystem
 
     void renderShadows(Level *lvl, OrthographicCamera *sunCam)
     {
-        defaultShader.use();
-        glUniformMatrix4fv(defaultShader.location("view"), 1, GL_FALSE, &sunCam->combined[0][0]);
-
         for (Island *isl : lvl->earth.islands)
         {
             if (!isl->isInView) continue;
@@ -170,11 +173,17 @@ class BuildingRenderingSystem : public LevelSystem
             {
                 if (instances.vertDataId == -1) continue;
 
+                ShaderProgram *shader = shaderForVariant(var);
+                shader->use();
+
+                glUniformMatrix4fv(shader->location("view"), 1, GL_FALSE, &sunCam->combined[0][0]);
+
                 auto vertBuffer = var->lodMeshes[0]->vertBuffer;
 
-                setJustPlacedUniforms(&defaultShader, instances, lvl);
+                setJustPlacedUniforms(shader, instances, lvl);
                 vertBuffer->usePerInstanceData(instances.vertDataId);
-                var->texture->bind(0, defaultShader, "buildingTexture");
+                var->texture->bind(0);
+                glUniform1i(shader->location("buildingTexture"), 0);
                 var->lodMeshes[0]->renderInstances(instances.buildings.size());
             }
         }

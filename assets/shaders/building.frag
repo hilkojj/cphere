@@ -18,13 +18,13 @@ void main()
     if (color.a <= .7) discard;
     color.a *= 3.;
 
-    if (instanceId >= justPlacedId)
-    {
-        // placing animation:
-        float animTime = clamp(timeSincePlacing[instanceId - justPlacedId], 0., .5) * 2.;
-        if (10. - y > animTime * 10.)
-            discard;
-    }
+//    if (instanceId >= justPlacedId)
+//    {
+//        // placing animation:
+//        float animTime = clamp(timeSincePlacing[instanceId - justPlacedId], 0., .5) * 2.;
+//        if (10. - y > animTime * 10.)
+//            discard;
+//    }
 
     color.rgb *= light;
 }
