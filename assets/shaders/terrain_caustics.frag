@@ -16,7 +16,7 @@ const float near = .1, far = 1000.;
 
 void main() {
 
-    if (v_y > 4.) discard;
+    if (v_y > 2.5) discard;
 
     color = texture(terrainTexture, v_texCoord);
 

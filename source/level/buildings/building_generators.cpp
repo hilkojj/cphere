@@ -34,8 +34,15 @@ namespace BLUEPRINTS
         float width = mu::random(.8, 1.1);
         b->localTransform = scale(mat4(1), vec3(width, mu::random(.8, 1.1), width));
         b->localTransform = translate(b->localTransform, mu::Y * -mu::random(1.5));
-        b->localTransform = rotate(b->localTransform, mu::random(mu::PI * 2.), mu::Y);
-        b->localTransform = rotate(b->localTransform, mu::random() > .6 ? mu::random(.2) : mu::random(.05), mu::X);
+//        b->localTransform = rotate(b->localTransform, mu::random(mu::PI * 2.), mu::Y);
+
+        b->localTransform = rotate(
+                b->localTransform,
+                mu::random() > .6 ? mu::random(.2) : mu::random(.05),
+
+
+                rotate(mu::X, mu::random(2 * mu::PI), mu::Y)
+        );
     }
 
     void create_OAK_TREE(Building &b)

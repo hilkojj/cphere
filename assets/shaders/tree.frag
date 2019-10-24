@@ -4,15 +4,36 @@ precision mediump float;
 out vec4 color;
 
 in vec2 v_uv;
-in float light, v_random;
+in float light, y;
+flat in float v_random;
+flat in int instanceId;
 
 uniform sampler2D buildingTexture;
+
+uniform int justPlacedId;
+uniform vec4 timeSincePlacing;
+
+
 
 void main()
 {
     color = texture(buildingTexture, v_uv);
+
     if (color.a <= .7) discard;
-    color.a *= 3.;
+//    color.a *= 3.;
+
+
+    if (instanceId >= justPlacedId)
+    {
+        // placing animation:
+
+        float animTime = clamp(timeSincePlacing[instanceId - justPlacedId] - .1, 0., .5) * 2.;
+
+        if (color.g > color.r) {
+            if (y < (1. - animTime) * 10.)
+                discard;
+        }
+    }
 
     color.rgb *= light;
 

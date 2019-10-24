@@ -11,14 +11,19 @@ layout(location = 8) in float random;
 
 uniform mat4 view;
 uniform vec3 sunDir;
+uniform float time;
 
 out vec2 v_uv;
-out float light, v_random;
+out float light, v_random, y;
+
+flat out int instanceId;
 
 void main() {
     gl_Position = (view * transform) * vec4(a_pos, 1);
+    y = a_pos.y;
     light = dot((transform * vec4(a_nor, 0)).xyz, sunDir) * .3 + .7;
 
     v_uv = a_uv;
     v_random = random;
+    instanceId = gl_InstanceID;
 }

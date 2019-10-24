@@ -71,6 +71,8 @@ struct Building_
     std::vector<ivec2> tiles; // the tiles occupied by the building
     mat4 transform, localTransform = mat4(1);
 
+    float placedTime = 0.;
+
     std::optional<RenderBuilding> renderBuilding;
 
     Building_(Blueprint *bp, int x, int y, int rotation, Island *isl);

@@ -106,6 +106,7 @@ class BuildingsSystem : public LevelSystem
         std::cout << "PLACING " << b->bp->name << "\n";
 
         b->move(b->tiles[0].x, b->tiles[0].y, b->rotation, b->isl);
+        b->placedTime = lvl->time;
         b->isl->buildingsPerBlueprint[b->bp].push_back(b);
 
         for (auto &p : b->tiles)

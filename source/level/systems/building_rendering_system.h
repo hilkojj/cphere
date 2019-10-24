@@ -17,6 +17,8 @@ struct VariantInstances
             buildings,
             toAdd,
             toRemove;
+
+    int justPlacedId = 0;
 };
 
 class BuildingRenderingSystem : public LevelSystem
@@ -33,7 +35,7 @@ class BuildingRenderingSystem : public LevelSystem
                 ShaderProgram::fromFiles("DefaultBuildingShader", "assets/shaders/building.vert", "assets/shaders/building.frag")
           ),
           treeShader(
-                ShaderProgram::fromFiles("TreeShader", "assets/shaders/building.vert", "assets/shaders/tree.frag")
+                ShaderProgram::fromFiles("TreeShader", "assets/shaders/tree.vert", "assets/shaders/tree.frag")
           )
     {
         active = this;
@@ -87,9 +89,6 @@ class BuildingRenderingSystem : public LevelSystem
                 }
                 shader->use();
 
-                glUniformMatrix4fv(shader->location("view"), 1, GL_FALSE, &lvl->cam->combined[0][0]);
-                glUniform3f(shader->location("sunDir"), sunDir.x, sunDir.y, sunDir.z);
-
                 auto vertBuffer = var->lodMeshes[0]->vertBuffer;
                 auto nrToAdd = instances.toAdd.size(), nrToRemove = instances.toRemove.size();
                 if (nrToAdd || nrToRemove)
@@ -119,6 +118,9 @@ class BuildingRenderingSystem : public LevelSystem
                         instances.transforms.addVertices(1);
                         instances.transforms.setMat<mat4>(b->transform, instances.buildings.size(), 0);
                         instances.transforms.setFloat(mu::random(), instances.buildings.size(), 16);
+
+                        instances.justPlacedId = max<int>(0, instances.buildings.size() - 3);
+
                         instances.buildings.push_back(b);
                     }
 
@@ -127,12 +129,29 @@ class BuildingRenderingSystem : public LevelSystem
                     instances.toRemove.clear();
                     std::cout << instances.buildings.size() << "\n";
                 }
+
+                glUniformMatrix4fv(shader->location("view"), 1, GL_FALSE, &lvl->cam->combined[0][0]);
+                glUniform3f(shader->location("sunDir"), sunDir.x, sunDir.y, sunDir.z);
+                glUniform1f(shader->location("time"), lvl->time);
+                setJustPlacedUniforms(shader, instances, lvl);
+
                 vertBuffer->usePerInstanceData(instances.vertDataId);
                 var->texture->bind(0);
                 glUniform1i(shader->location("buildingTexture"), 0);
                 var->lodMeshes[0]->renderInstances(instances.buildings.size());
             }
         }
+    }
+
+    void setJustPlacedUniforms(ShaderProgram *shader, VariantInstances &instances, Level *lvl)
+    {
+        glUniform1i(shader->location("justPlacedId"), instances.justPlacedId);
+        vec4 timeSincePlacing = vec4();
+        for (int i = 0; i < 4 && instances.buildings.size() > instances.justPlacedId + i; i++)
+        {
+            timeSincePlacing[i] = lvl->time - instances.buildings[instances.justPlacedId + i]->placedTime;
+        }
+        glUniform4f(shader->location("timeSincePlacing"), timeSincePlacing.r, timeSincePlacing.g, timeSincePlacing.b, timeSincePlacing.a);
     }
 
     void renderShadows(Level *lvl, OrthographicCamera *sunCam)
@@ -150,6 +169,7 @@ class BuildingRenderingSystem : public LevelSystem
 
                 auto vertBuffer = var->lodMeshes[0]->vertBuffer;
 
+                setJustPlacedUniforms(&defaultShader, instances, lvl);
                 vertBuffer->usePerInstanceData(instances.vertDataId);
                 var->texture->bind(0, defaultShader, "buildingTexture");
                 var->lodMeshes[0]->renderInstances(instances.buildings.size());
