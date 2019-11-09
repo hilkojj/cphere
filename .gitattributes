@@ -6,3 +6,4 @@
 *.dds filter=lfs diff=lfs merge=lfs -text
 *.xfc filter=lfs diff=lfs merge=lfs -text
 *.tif filter=lfs diff=lfs merge=lfs -text
+*.save filter=lfs diff=lfs merge=lfs -text

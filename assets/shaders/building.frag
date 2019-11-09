@@ -9,22 +9,10 @@ flat in int instanceId;
 
 uniform sampler2D buildingTexture;
 
-uniform int justPlacedId;
-uniform vec4 timeSincePlacing;
-
 void main()
 {
     color = texture(buildingTexture, v_uv);
     if (color.a <= .7) discard;
     color.a *= 3.;
-
-//    if (instanceId >= justPlacedId)
-//    {
-//        // placing animation:
-//        float animTime = clamp(timeSincePlacing[instanceId - justPlacedId], 0., .5) * 2.;
-//        if (10. - y > animTime * 10.)
-//            discard;
-//    }
-
     color.rgb *= light;
 }

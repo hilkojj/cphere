@@ -38,11 +38,13 @@ void PlanetCameraMovement::update(double deltaTime, Planet *plttt)
             left = MouseInput::mouseX < 35,
             right = MouseInput::mouseX > gu::width - 35;
 
-        if (up) lat -= deltaTime * 50;
-        else if (down) lat += deltaTime * 50;
+        float moveSpeed = 50. - actualZoom * 20.;
 
-        if (left) lon -= deltaTime * 50;
-        else if (right) lon += deltaTime * 50;
+        if (up) lat -= deltaTime * moveSpeed;
+        else if (down) lat += deltaTime * moveSpeed;
+
+        if (left) lon -= deltaTime * moveSpeed;
+        else if (right) lon += deltaTime * moveSpeed;
 
         if (stoppedDragging) afterDragTimer = .5;
 
@@ -57,7 +59,7 @@ void PlanetCameraMovement::update(double deltaTime, Planet *plttt)
     lon = mod(lon, 360.f);
     lat = max(0.f, min(180.f, lat));
 
-    zoom = min(1. , max(0., zoom + MouseInput::yScroll * .08));
+    zoom = min(.92 , max(0., zoom + MouseInput::yScroll * .08));
     float prevActualZoom = actualZoom;
     actualZoom = actualZoom * (1. - deltaTime * 10.) + zoom * deltaTime * 10.;
 
