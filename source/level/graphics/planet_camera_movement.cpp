@@ -165,6 +165,5 @@ void PlanetCameraMovement::islandFrustumCulling()
         }
         if (isl->isInView) nrInView++;
     }
-    std::cout << nrInView << '\n';
 }
 
