@@ -2,7 +2,7 @@
 #include "input/mouse_input.h"
 #include "gu/game_utils.h"
 
-PlanetCameraMovement::PlanetCameraMovement(PerspectiveCamera *cam, Planet *plt)
+PlanetCameraMovement::PlanetCameraMovement(Camera *cam, Planet *plt)
     : cam(cam), plt(plt), slightlySmallerPlt("PltCamMovementPlt", Sphere(plt->sphere.radius - 10.))
 {
 }
@@ -12,6 +12,7 @@ const int DRAG_BUTTON = GLFW_MOUSE_BUTTON_LEFT;
 
 void PlanetCameraMovement::update(double deltaTime, Planet *plttt)
 {
+    auto prevPos = cam->position;
     plt = plttt;
     bool startDrag = MouseInput::justPressed(DRAG_BUTTON),
          dragging = MouseInput::pressed(DRAG_BUTTON),
@@ -37,11 +38,13 @@ void PlanetCameraMovement::update(double deltaTime, Planet *plttt)
             left = MouseInput::mouseX < 35,
             right = MouseInput::mouseX > gu::width - 35;
 
-        if (up) lat -= deltaTime * 50;
-        else if (down) lat += deltaTime * 50;
+        float moveSpeed = 50. - actualZoom * 20.;
 
-        if (left) lon -= deltaTime * 50;
-        else if (right) lon += deltaTime * 50;
+        if (up) lat -= deltaTime * moveSpeed;
+        else if (down) lat += deltaTime * moveSpeed;
+
+        if (left) lon -= deltaTime * moveSpeed;
+        else if (right) lon += deltaTime * moveSpeed;
 
         if (stoppedDragging) afterDragTimer = .5;
 
@@ -56,15 +59,14 @@ void PlanetCameraMovement::update(double deltaTime, Planet *plttt)
     lon = mod(lon, 360.f);
     lat = max(0.f, min(180.f, lat));
 
-    zoom = min(1. , max(0., zoom + MouseInput::yScroll * .08));
+    zoom = min(.92 , max(0., zoom + MouseInput::yScroll * .08));
     float prevActualZoom = actualZoom;
     actualZoom = actualZoom * (1. - deltaTime * 10.) + zoom * deltaTime * 10.;
 
     zoomVelocity = abs(prevActualZoom - actualZoom) / deltaTime;
-    if (zoomVelocity > .0 || horizonDistance < 0.) updateHorizonDistance();
 
     cam->position = mu::Y * vec3(5. + 235 * (1. - actualZoom));
-    cam->position.z += actualZoom * 25.;
+    cam->position.z += actualZoom * 24.5;
 
     cam->lookAt(mu::ZERO_3, -mu::Z);
 
@@ -81,6 +83,7 @@ void PlanetCameraMovement::update(double deltaTime, Planet *plttt)
     cam->up = transform * vec4(cam->up, 0);
 
     cam->update();
+    if (prevPos != cam->position) islandFrustumCulling();
 }
 
 void PlanetCameraMovement::dragUpdate()
@@ -136,5 +139,32 @@ vec2 PlanetCameraMovement::dragVelocity() const
 void PlanetCameraMovement::updateHorizonDistance()
 {
     horizonDistance = sqrt(pow(length(cam->position), 2) - pow(plt->sphere.radius, 2));
+}
+
+void PlanetCameraMovement::islandFrustumCulling()
+{
+    updateHorizonDistance();
+    int nrInView = 0;
+    for (Island *isl : plt->islands)
+    {
+        isl->isInView = false;
+        for (int x = 0; x < isl->width; x += 10)
+        {
+            for (int y = 0; y < isl->height && !isl->isInView; y += 10)
+            {
+                if (isl->tileAtSeaFloor(x, y)) continue;
+
+                vec3 p = isl->vertexPositionsPlanet[isl->xyToVertI(x, y)];
+
+                if (length(p - cam->position) > horizonDistance + 15) continue;
+
+                bool inView = false;
+                cam->project(p, inView);
+                if (inView) isl->isInView = true;
+            }
+        }
+        if (isl->isInView) nrInView++;
+    }
+    std::cout << nrInView << '\n';
 }
 

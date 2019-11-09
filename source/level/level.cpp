@@ -1,7 +1,10 @@
 #include "level.h"
 #include "../planet_generation/earth_generator.h"
 #include "files/file.h"
-#include "ecs/ships.h"
+#include "systems/buildings_system.h"
+#include "systems/building_rendering_system.h"
+#include "systems/ships_system.h"
+#include "FastNoise.h"
 
 Level::Level(const char *loadFilePath)
     :   earth("earth", Sphere(EARTH_RADIUS)),
@@ -9,8 +12,9 @@ Level::Level(const char *loadFilePath)
         systems({
 
             new ShipsSystem(),
-            new ShipPathSystem()
-
+            new ShipPathSystem(),
+            new BuildingsSystem(this),
+            new BuildingRenderingSystem(this),
         })
 {
     if (loadFilePath)
@@ -26,10 +30,29 @@ Level::Level(const char *loadFilePath)
         File::writeBinary("level.save", data);
     }
 
+    FastNoise treeNoise;
+    for (Island *isl : earth.islands)
+    {
+        for (int i = 0; i < isl->width * isl->height * 2.; i++)
+        {
+            int x = mu::randomInt(isl->width - 10), y = mu::randomInt(isl->height - 10);
+
+            if (mu::random(-2, .4) < treeNoise.GetSimplexFractal(x, y)) continue;
+
+            if (isl->textureMap[isl->xyToVertI(x, y)][1] < .8) continue;
+
+            auto tree = Building(new Building_(&BLUEPRINTS::PINE_TREE, x, y, 0, isl));
+            BLUEPRINTS::PINE_TREE.generator(tree);
+
+            if (BuildingsSystem::active->canPlace(tree))
+                BuildingsSystem::active->place(tree);
+        }
+    }
+
     seaGraph.generate();
 
     {   // tmp
-        entities.assign<Ship>(entities.create(), vec2(30, 30));
+        ships.push_back({ vec2(30, 30) });
     }
 }
 

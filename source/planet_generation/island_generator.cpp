@@ -5,8 +5,6 @@
 #include "glm/gtx/rotate_vector.hpp"
 #include "graphics/3d/model_instance.h"
 
-static const float ISLAND_ROTATION = 30;
-
 IslandGenerator::IslandGenerator(int width, int height, Planet *plt, TerrainGenerator terrainGenerator, TextureMapper textureMapper)
     : terrainGenerator(terrainGenerator), textureMapper(textureMapper)
 {

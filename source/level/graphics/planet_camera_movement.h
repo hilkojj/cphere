@@ -3,14 +3,14 @@
 
 #include <queue>
 
-#include "graphics/3d/perspective_camera.h"
+#include "graphics/camera.h"
 #include "../planet.h"
 
 class PlanetCameraMovement
 {
   public:
 
-    PlanetCameraMovement(PerspectiveCamera *cam, Planet *plt);
+    PlanetCameraMovement(Camera *cam, Planet *plt);
 
     void update(double deltaTime, Planet *plt);
 
@@ -22,9 +22,11 @@ class PlanetCameraMovement
     void dragUpdate();
     vec2 dragVelocity() const;
 
+    void islandFrustumCulling();
+
     void updateHorizonDistance();
 
-    PerspectiveCamera *cam;
+    Camera *cam;
     Planet *plt, slightlySmallerPlt; // slightlySmallerPlt is just a dummy planet with a smaller radius used in dragUpdate()
 
     float dragLon = 0, dragLat = 0, dragUpdateAccumulator = 0, afterDragTimer;

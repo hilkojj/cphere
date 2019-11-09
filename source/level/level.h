@@ -1,10 +1,12 @@
 #ifndef LEVEL_H
 #define LEVEL_H
 
+#include <map>
+
 #include "planet.h"
 #include "sea_graph.h"
-#include "../entt.hpp"
 #include "graphics/3d/debug_line_renderer.h"
+#include "ship.h"
 
 const float EARTH_RADIUS = 150, ATMOSPHERE_RADIUS = 198;
 
@@ -12,6 +14,9 @@ class Level;
 
 class LevelSystem
 {
+  public:
+    virtual ~LevelSystem() {}
+
   protected:
     float updateFrequency = 0; // update this system every n seconds. if n = 0 then update(deltaTime) is called, else update(n)
     float updateAccumulator = 0;
@@ -31,15 +36,15 @@ class Level
 
     Planet earth;
     SeaGraph seaGraph;
-    entt::registry entities;
 
+    std::vector<Ship> ships;
     std::vector<LevelSystem*> systems;
 
     float time = 0;
 
     void update(double deltaTime);
 
-    // the following variables should be removed from this class as they're graphics related:
+    // consider removing the following variables because they're graphics related:
     DebugLineRenderer *lineRenderer;
     Camera *cam;
 

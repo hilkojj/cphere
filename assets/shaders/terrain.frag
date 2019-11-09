@@ -8,8 +8,12 @@ in vec4 v_texBlend;
 
 in vec3 v_sunDirTanSpace;
 
-in float v_dayLight;
 in vec3 v_toCamera;
+in float v_y;
+
+in float v_shadowOpacity;
+
+in vec4 shadowMapCoords;
 
 out vec4 color;
 
@@ -19,6 +23,8 @@ uniform sampler2DArray terrainTextures;
 uniform int backgroundTerrainLayer;
 uniform vec4 terrainLayers, specularity, textureScale;
 uniform ivec4 hasNormal, fadeBlend;
+
+uniform lowp sampler2DShadow shadowBuffer;
 
 void layer(int i, inout vec3 normal, inout vec4 color, inout float remainingA, inout float specular)
 {
@@ -46,8 +52,15 @@ void layer(int i, inout vec3 normal, inout vec4 color, inout float remainingA, i
 
 void main() {
 //    discard;
+
+    if (v_y < -.4) discard;
+
     float remainingA = 1.;
-    float specularA = 0.;
+
+    float wetSand = min(1., max(0., .8 - v_y * 2.));
+//    color.rgb = vec3(wetSand);
+//    return;
+    float specularA = wetSand * .1;
 
     color = vec4(0, 0, 0, 1);
     vec3 normal = vec3(0);
@@ -57,14 +70,33 @@ void main() {
     layer(1, normal, color, remainingA, specularA);
     layer(0, normal, color, remainingA, specularA);
     layer(-1, normal, color, remainingA, specularA);
-        
+
     normal *= 2.;
     normal -= 1.;
 
+    normal = normal * (1. - wetSand) + vec3(0, 0, 1) * wetSand;
+    color.rgb *= 1. - wetSand * .15;
+
     // light
-    float diffuseLight = dot(normal, v_sunDirTanSpace) * .4 + .6;
-//    float normalMapEffect = clamp(v_dayLight - .3, 0., 1.);
+
+    float lightEffect = max(.35, min(1., dot(vec3(0, 0, 1), v_sunDirTanSpace) * .4 + .3));
+//    color.rgb = vec3(lightEffect);
+//    return;
+
+
+    float diffuseLight = dot(normal, v_sunDirTanSpace) * lightEffect + (1. - lightEffect);
     color.rgb *= diffuseLight;
+
+    if (shadowMapCoords.x >= 0. && shadowMapCoords.x <= 1. && shadowMapCoords.y >= 0. && shadowMapCoords.y <= 1.)
+    {
+        float shadow = texture(shadowBuffer, shadowMapCoords.xyz);
+
+        float shadowOpacity = v_shadowOpacity * .3;
+
+        color.rgb *= shadow * shadowOpacity + (1. - shadowOpacity);
+
+        specularA *= shadow * shadowOpacity + (1. - shadowOpacity);
+    }
 
     vec3 reflectDir = reflect(v_sunDirTanSpace, normal);
     float specular = dot(reflectDir, normalize(v_toCamera));

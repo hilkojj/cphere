@@ -8,9 +8,14 @@
 #include "graphics/3d/mesh.h"
 #include "graphics/camera.h"
 
+#include "buildings/building.h"
+
 #include "json.hpp"
 
 class Planet;
+class BuildingsSystem;
+
+static const float ISLAND_ROTATION = 30;
 
 class Island
 {
@@ -20,7 +25,10 @@ class Island
     int width, height, nrOfVerts;
     float longitude, latitude;
     mat4 planetTransform;
+
     bool isInView = true;
+
+    float seaBottom = 0;
 
     SharedMesh terrainMesh;
 
@@ -33,25 +41,27 @@ class Island
 
     void toBinary(std::vector<uint8> &out) const;
 
-    float seaBottom = 0;
+    int xyToVertI(int x, int y) const;
 
-    int xyToVertI(int x, int y);
+    int vertIToX(int i) const;
 
-    int vertIToX(int i);
+    int vertIToY(int i) const;
 
-    int vertIToY(int i);
+    bool tileAtSeaFloor(int x, int y) const;
 
-    bool tileAtSeaFloor(int x, int y);
+    bool tileAboveSea(int x, int y) const;
 
-    float tileSteepness(int x, int y);
+    float tileSteepness(int x, int y) const;
 
-    float distToHeight(int x, int y, float minHeight, float maxHeight, int maxDist);
+    float distToHeight(int x, int y, float minHeight, float maxHeight, int maxDist) const;
 
-    bool containsLonLatPoint(float lon, float lat);
+    bool containsLonLatPoint(float lon, float lat) const;
 
-    bool tileUnderCursor(ivec2 &out, const Camera &cam);
+    bool tileUnderCursor(ivec2 &out, const Camera *cam) const;
 
     bool containsTile(int x, int y) const;
+
+    vec3 tileCenter(int x, int y) const;
 
     // returns 0-1 based on amount of vertices that are underwater
     float percentageUnderwater() const;
@@ -110,12 +120,21 @@ class Island
 
     void placeOnPlanet();
 
+    std::map<Blueprint*, std::vector<Building>> buildingsPerBlueprint;
+
+    Building &getBuilding(int x, int y) const;
+
   private:
-    ivec2 prevTileUnderCursor = ivec2(0); // used by tileUnderCursor() as optimization
+
+    mutable std::vector<std::vector<Building>> buildingsGrid;
+    friend BuildingsSystem; // the building system is allowed to place and remove buildings
+
+    mutable ivec2 prevTileUnderCursor = ivec2(0); // used by tileUnderCursor() as optimization
 
     void transformOutlines();
 
     void calculateLatLonOutlines();
+
 };
 
 #endif

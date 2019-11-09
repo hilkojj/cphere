@@ -18,10 +18,14 @@ int main(int argc, char *argv[])
     if (!gu::init(config))
         return -1;
 
+    #ifdef EMSCRIPTEN
+    const char *path = "assets/pre-generated-level.save";
+    #else
     char *path = NULL;
     for (int i = 0; i < argc; i++)
         if (std::string(argv[i]) == "-s")
             path = argv[i + 1];
+    #endif
 
     LevelScreen s(path);
     gu::setScreen(&s);

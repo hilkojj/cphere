@@ -10,16 +10,18 @@ in vec3 v_camPosTanSpace;
 in vec3 v_sunDirTanSpace;
 in vec3 v_toCamera;
 in mat3 v_fromTanSpace;
-in float v_edge;
+in float v_shadowOpacity;
+
+in vec4 shadowMapCoords;
 
 uniform vec3 sunDir;
-// uniform sampler2D seaNormals;
-// uniform sampler2D seaDUDV;
 uniform sampler2D foamTexture;
 uniform sampler2D seaWaves;
 uniform sampler2D underwaterTexture;
 uniform sampler2D underwaterDepthTexture;
 uniform sampler2D reflectionTexture;
+
+uniform lowp sampler2DShadow shadowBuffer;
 
 uniform float time;
 uniform vec2 scrSize;
@@ -201,7 +203,7 @@ void applyFoam(float foam, vec3 normal)
 
 void underwater(float seaDepth, vec3 normal, vec2 screenCoords, float visibility)
 {
-    seaDepth += .3;
+    seaDepth += .1;
     vec2 dudv = normal.xy * .15;
     vec2 distortedScreenCoords = screenCoords + dudv;
     distortedScreenCoords.x = max(0.01, min(.99, distortedScreenCoords.x));
@@ -238,7 +240,7 @@ float fresnelReflection(vec3 normal, float detail, float daylight, vec2 screenCo
 
     vec3 viewVector =  normalize(v_camPosTanSpace - normal);
     float fr = 1.0 - dot(normal, viewVector);
-    fr *= 7. * detail + 1.;
+    fr *= 4. * detail + 1.;
     fr = clamp1(fr);
     color.rgb += reflectionColor * fr;
 
@@ -295,10 +297,23 @@ void main()
 
     applyFoam(foam, normal);
 
+
+    float shadow = 0.;
+    if (v_shadowOpacity > 0. && shadowMapCoords.x >= 0. && shadowMapCoords.x <= 1. && shadowMapCoords.y >= 0. && shadowMapCoords.y <= 1.)
+    {
+        shadow = texture(shadowBuffer, shadowMapCoords.xyz);
+
+        float shadowOpacity = v_shadowOpacity * .3;
+
+        color.rgb *= shadow * shadowOpacity + (1. - shadowOpacity);
+    }
+
     // specular:
-    color.rgb += specular(normalDetailed, seaHeight, detail);
+    color.rgb += specular(normalDetailed, seaHeight, detail) * (shadow);
 
     // fade edges:
     color.a = seaDepth * 3. > normalDetailed.x ? 1. : .4;
     color.a *= seaDepth * 10.;
+
+//    color.rgb = vec3(v_shadowOpacity);
 }
