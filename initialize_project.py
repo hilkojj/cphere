@@ -26,7 +26,7 @@ def file(url, dst):
 # command("git init")
 command(f"git submodule add {GU_REPO} gu")
 
-command("pip install --user glad")
+command("python -m pip install --user glad")
 command("glad --generator=c --extensions=GL_EXT_texture_compression_s3tc --out-path=gu/external/glad")
 
 zip("https://github.com/glfw/glfw/releases/download/3.2.1/glfw-3.2.1.zip", "gu/external")
