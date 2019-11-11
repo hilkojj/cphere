@@ -15,7 +15,7 @@
 class Planet;
 class BuildingsSystem;
 
-static const float ISLAND_ROTATION = 30;
+static const float ISLAND_ROTATION = 0;//30;
 
 class Island
 {

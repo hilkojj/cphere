@@ -32,7 +32,7 @@ void IslandGenerator::finishGeneration()
 
 void IslandGenerator::reset(int width, int height, Planet *plt)
 {
-    if (isl) delete isl;
+    delete isl;
     isl = new Island(width, height, plt);
 }
 
@@ -44,7 +44,7 @@ bool IslandGenerator::tryToGenerate()
     IslandOutliner outliner(isl, 0);
     outliner.getOutlines(isl->outlines2d);
 
-    if (isl->outlines2d.size() == 0) return false;
+//    if (isl->outlines2d.empty()) return false;
     
     // outlines are incorrect in rare cases, so check them and return false if outlines are incorrect.
     if (!outliner.checkOutlines(isl->outlines2d)) return false;

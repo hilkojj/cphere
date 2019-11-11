@@ -20,9 +20,9 @@ Level::Level(const char *loadFilePath)
     if (loadFilePath)
     {
         auto earthBin = File::readBinary(loadFilePath);
-        earth.fromBinary(earthBin, [&]() {
-            return earthMeshGenerator(&earth);
-        });
+//        earth.fromBinary(earthBin, [&]() {
+//            return earthMeshGenerator(&earth);
+//        });
     } else {
         generateEarth(&earth);
         std::vector<uint8> data;

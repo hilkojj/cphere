@@ -10,6 +10,7 @@ uniform float zoomedIn;
 
 void main()
 {
+    discard;
     float sky = min(1., max(0., (zoomedIn - .3) * 2.));
     color = vec4(.45, .55, .9, 1.) * sky + texture(cubemap, v_texCoords) * (1. - sky);
 }

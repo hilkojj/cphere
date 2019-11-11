@@ -269,14 +269,16 @@ void Island::createMesh()
         uvOffset = attrs.add(VertAttributes::TEX_COORDS),
         tanOffset = attrs.add(VertAttributes::TANGENT),
         texOffset = attrs.add({"TEX_BLEND", 4, GL_FALSE}),
-        yLevelOffset = attrs.add({"Y_LEVEL", 1, GL_FALSE});
+        yLevelOffset = attrs.add({"Y_LEVEL", 1, GL_FALSE}),
+        pos2Offset = attrs.add(VertAttributes::POSITION);
 
     SharedMesh mesh = SharedMesh(new Mesh(name + "_mesh", nrOfVerts, width * height * 6, attrs));
 
     for (int i = 0; i < nrOfVerts; i++)
     {
-        mesh->set(vertexPositionsPlanet[i], i, posOffset);     // position
-        mesh->set(vertexNormalsPlanet[i], i, norOffset);       // normal
+        mesh->set(vertexPositionsOriginal[i], i, posOffset);     // position
+        mesh->set(vertexPositions[i], i, pos2Offset);     // position
+        mesh->set(vertexNormals[i], i, norOffset);       // normal
 
         mesh->set(
                 vec2(vertIToX(i), vertIToY(i)) / vec2(50), i, uvOffset    // texCoords
@@ -291,7 +293,7 @@ void Island::createMesh()
     {
         for (int x = 0; x < width; x++)
         {
-            if (tileAtSeaFloor(x, y)) continue;
+//            if (tileAtSeaFloor(x, y)) continue;
 
             // triangle 1
             mesh->indices[i + 0] = xyToVertI(x + 1, y + 1);

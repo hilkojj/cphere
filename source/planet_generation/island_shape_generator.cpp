@@ -1,4 +1,5 @@
 
+#include <files/file.h>
 #include "utils/math_utils.h"
 #include "island_shape_generator.h"
 
@@ -21,7 +22,23 @@ void IslandShapeGenerator::addCircles()
         int cX = mu::random(radius + 2, isl->width - radius - 2);
         int cY = mu::random(radius + 2, isl->height - radius - 2);
         if (i < amount * .1f || shape[isl->xyToVertI(cX, cY)])
+        {
+
             addCircle(cX, cY, radius);
+//            std::vector<unsigned char> out;
+//            for (int y = 0; y < isl->height; y++)
+//            {
+//                for (int x = 0; x < isl->width; x++)
+//                {
+//                    if (shape[isl->xyToVertI(x, y)])
+//                        out.push_back('#');
+//                    else out.push_back('_');
+//                }
+//                out.push_back('\n');
+//            }
+//            File::writeBinary((std::to_string(i) + ".txt").c_str(), out);
+        }
+
     }
 }
 

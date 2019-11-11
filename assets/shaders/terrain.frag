@@ -15,6 +15,8 @@ in float v_shadowOpacity;
 
 in vec4 shadowMapCoords;
 
+in vec3 p;
+
 out vec4 color;
 
 uniform vec3 sunDir;
@@ -53,7 +55,36 @@ void layer(int i, inout vec3 normal, inout vec4 color, inout float remainingA, i
 void main() {
 //    discard;
 
-    if (v_y < -.4) discard;
+    float gridAppear = smoothstep(0., 20., time);
+
+    float floorDissapear = smoothstep(5., 15., time);
+
+    if (p.x + p.y + 100. > gridAppear * 1000.) discard;
+
+    if (p.x + p.y + 100. < floorDissapear * 1000. && v_y < -4.9) discard;
+
+//    if (v_y < -4.9) discard;
+
+//    if (v_y < -.4) discard;
+    float s = dot(vec3(0, 0, 1), v_sunDirTanSpace) + .5;
+
+    vec4 c = vec4(1);
+
+    if (v_y < 0.)
+    {
+        float ffffff = smoothstep(19., 20., time);
+        c = vec4(0., .2, .9, 1.) * ffffff + c * (1. - ffffff);
+    }
+
+    color = c * s + vec4(.1, 0, .1, 1.) * (1. - s);
+
+    float x = smoothstep(10., 14., time);
+    color *= x;
+    color += vec4(1. - x);
+
+    if (p.x + p.y + 100. > smoothstep(28., 50., time) * 1000.) return;
+
+//    return;
 
     float remainingA = 1.;
 
@@ -66,9 +97,12 @@ void main() {
     vec3 normal = vec3(0);
 
     layer(3, normal, color, remainingA, specularA);
-    layer(2, normal, color, remainingA, specularA);
-    layer(1, normal, color, remainingA, specularA);
-    layer(0, normal, color, remainingA, specularA);
+    if (p.x + p.y + 100. < smoothstep(28., 50., time - 7.) * 1000.)
+        layer(2, normal, color, remainingA, specularA);
+    if (p.x + p.y + 100. < smoothstep(28., 50., time - 5.) * 1000.)
+        layer(1, normal, color, remainingA, specularA);
+    if (p.x + p.y + 100. < smoothstep(28., 50., time - 3.) * 1000.)
+        layer(0, normal, color, remainingA, specularA);
     layer(-1, normal, color, remainingA, specularA);
 
     normal *= 2.;
@@ -102,7 +136,7 @@ void main() {
     float specular = dot(reflectDir, normalize(v_toCamera));
     specular = min(1., max(0., specular));
     float dampedSpec = pow(specular, 10.);
-    color.rgb += dampedSpec * specularA;
+//    color.rgb += dampedSpec * specularA;
 
     // color.rgb = vec3(v_dayLight);
 }
